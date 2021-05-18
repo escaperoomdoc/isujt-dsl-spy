@@ -7,10 +7,14 @@ export interface IDslResult {
 };
 
 export class Dsl {
+	name: string;
 	baseUrl: string;
-	constructor(baseUrl: string) {
+	jsonFile?: string;
+	constructor(cfg: any) {
 		try {
-			this.baseUrl = baseUrl;
+			this.name = cfg.name;
+			this.baseUrl = cfg.url;
+			this.jsonFile = cfg.file;
 		}
 		catch(error) {
 			console.log(error);
