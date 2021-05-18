@@ -1,0 +1,11 @@
+{
+	"nodes": [{
+		"name": "etk1",
+		"url": "http://10.111.75.242:8082",
+		"file": "md5-1.json"
+	}, {
+		"name": "etk2",
+		"url": "http://10.111.75.243:8082",
+		"file": "md5-2.json"
+	}]
+}
