@@ -11,14 +11,12 @@ export class DslNode {
 	name: string;
 	baseUrl: string;
 	jsonFile?: string;
-	master?: boolean;
 	hashes: any;
 	constructor(cfg: any) {
 		try {
 			this.name = cfg.name;
 			this.baseUrl = cfg.url;
 			this.jsonFile = cfg.file;
-			this.master = cfg.master ? true : false;
 		}
 		catch(error) {
 			console.log(error);
@@ -47,7 +45,7 @@ export class DslNode {
 			var result = await axios.get(url);
 			return {
 				status: 'ok',
-				payload: result.data.payload
+				payload: result.data
 			}
 		}
 		catch(error) {

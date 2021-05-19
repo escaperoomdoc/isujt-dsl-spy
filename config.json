@@ -2,11 +2,12 @@
 	"nodes": [{
 		"name": "itk2",
 		"url": "http://10.111.75.242:8082",
-		"file": "md5-1.json",
-		"master": "true"
+		"file": "md5-1.json"
 	}, {
 		"name": "iok",
 		"url": "http://10.111.75.242:8080",
 		"file": "md5-2.json"
-	}]
+	}],
+	"masterNode": "itk2",
+	"requestTimeout": 10000
 }
