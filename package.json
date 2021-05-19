@@ -1,5 +1,5 @@
 {
-  "name": "tinmine",
+  "name": "isujt-dsl-spy",
   "version": "1.0.0",
   "description": "",
   "main": "build/app.js",
@@ -22,7 +22,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/escaperoomdoc/tinmine.git"
+    "url": "git+https://github.com/escaperoomdoc/isujt-dsl-spy.git"
   },
   "author": "dsi",
   "license": "ISC",

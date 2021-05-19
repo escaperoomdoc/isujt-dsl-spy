@@ -1,4 +1,5 @@
 import axios from 'axios';
+import {fsread} from "./app";
 
 export interface IDslResult {
 	status: string,
@@ -23,6 +24,13 @@ export class Dsl {
 	}
 	private async get(endpoint: string, parameters?: any): Promise<IDslResult> {
 		try {
+			if (this.jsonFile) {
+				let data = (await fsread(this.jsonFile)).toString();
+				return {
+					status: 'ok',
+					payload: JSON.parse(data)
+				}
+			}
 			var url: string = this.baseUrl + endpoint;
 			if (parameters) {
 				var paramstring: string | null = null;

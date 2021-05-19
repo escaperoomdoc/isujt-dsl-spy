@@ -1,9 +1,9 @@
 import {exit} from "process";
 import {setInterval} from "timers";
-import {promisify} from "util";
+
 import {logger} from "./app";
+import {fsread} from "./app";
 import {Dsl} from './dsl';
-import * as fs from "fs";
 
 /*
 import redis from "redis";
@@ -21,44 +21,40 @@ const redisHget = promisify(redisClient.hget).bind(redisClient);
 const redisHgetall = promisify(redisClient.hgetall).bind(redisClient);
 */
 
-const sleep = promisify(setTimeout);
-const fsread = promisify(fs.readFile)
+
 
 export class Spy {
 	prevTime: number;
-	dsl: Array<Dsl>;
+	nodes: Array<Dsl>;
 	config: any;
 	constructor() {
-		this.prevTime = Date.now();
-		this.dsl = [];
-		try {
-			setTimeout(() => this.init(), 10);
-		}
-		catch(error) {
-		}
+		this.prevTime = 0;
+		this.nodes = [];
 	}
-	private async init() {
+	async run() {
 		try {
-			this.config = await fsread('./config.json');
+			let cfg = (await fsread('./config.json')).toString();
+			this.config = JSON.parse(cfg);
 			for (let node of this.config.nodes) {
-				this.dsl.push(new Dsl(node));
+				this.nodes.push(new Dsl(node));
 			}
-			this.control();
+			setTimeout(() => this.job(), 10);
 		}
 		catch(error) {
 		}		
 	}	
-	private async control() {
+	private async job() {
 		try {
 			if (Date.now() >= this.prevTime + 60000) {
 				this.prevTime = Date.now();
-				for (let dsl of this.dsl) {
-					let md5 = await dsl.md5();
+				for (let node of this.nodes) {
+					let md5 = await node.md5();
+					let aaa = 0;
 				}
 			}
 		}
 		catch(error) {
 		}
-		setTimeout(() => this.control(), 1000);
+		setTimeout(() => this.job(), 1000);
 	}
 }
