@@ -3,7 +3,7 @@ import {setInterval} from "timers";
 
 import {logger} from "./app";
 import {fsread} from "./app";
-import {Dsl} from './dsl';
+import {DslNode} from './dsl_node';
 
 /*
 import redis from "redis";
@@ -25,7 +25,7 @@ const redisHgetall = promisify(redisClient.hgetall).bind(redisClient);
 
 export class Spy {
 	prevTime: number;
-	nodes: Array<Dsl>;
+	nodes: Array<DslNode>;
 	config: any;
 	constructor() {
 		this.prevTime = 0;
@@ -36,7 +36,7 @@ export class Spy {
 			let cfg = (await fsread('./config.json')).toString();
 			this.config = JSON.parse(cfg);
 			for (let node of this.config.nodes) {
-				this.nodes.push(new Dsl(node));
+				this.nodes.push(new DslNode(node));
 			}
 			setTimeout(() => this.job(), 10);
 		}
@@ -45,16 +45,59 @@ export class Spy {
 	}	
 	private async job() {
 		try {
-			if (Date.now() >= this.prevTime + 60000) {
+			if (Date.now() >= this.prevTime + 10000) {
 				this.prevTime = Date.now();
 				for (let node of this.nodes) {
-					let md5 = await node.md5();
-					let aaa = 0;
+					let hashes = await node.getHashes();
 				}
+				this.getdiff();
 			}
 		}
 		catch(error) {
 		}
 		setTimeout(() => this.job(), 1000);
+	}
+	private getdiff() {
+		let master = null;
+		var report: any = {
+			modules: {},
+			classes: {}
+		};
+		for (let node of this.nodes) {
+			if (node.master) master = node;
+			for (let item in node.hashes.data.modules) {
+				if (report.modules[item] === undefined) report.modules[item] = {};
+				report.modules[item][node.name] = node.hashes.data.modules[item];
+			}
+			for (let item in node.hashes.data.clases) {
+				if (report.classes[item] === undefined) report.classes[item] = {};
+				report.classes[item][node.name] = node.hashes.data.clases[item];
+			}
+		}
+		this.diffStorage(report.modules, 'modules');
+		this.diffStorage(report.classes, 'classes');
+	}
+	private diffStorage(storage: any, name: string) {
+		let count: number = 0;
+		let total: number = 0;
+		for (let index in storage) {
+			total ++;
+			let item = storage[index];
+			let prevhash: string | null = null;
+			let diff: boolean = false;
+			for (let hashIndex in item) {
+				let hash: string = item[hashIndex];
+				if (prevhash && prevhash != hash) {
+					diff = true;
+					break;
+				}
+				prevhash = hash;
+			}
+			if (diff) count ++;
+			else {
+				delete storage[index];
+			}
+		}
+		console.log(`diff count on ${name} = ${count} of ${total}`);
 	}
 }
