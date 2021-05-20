@@ -35,7 +35,7 @@ export class Spy {
 				this.prevTime = Date.now();
 				for (let node of this.nodes) {
 					let hashes = await node.getHashes();
-					if (hashes) console.log(`success requested from ${node.baseUrl}`);
+					if (hashes) console.log(`success request from ${node.baseUrl}`);
 					else console.log(`error in request from ${node.baseUrl}`);
 				}
 				this.getdiff();
