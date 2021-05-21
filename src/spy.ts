@@ -68,6 +68,7 @@ export class Spy {
 	private diffStorage(storage: any, name: string) {
 		let count: number = 0;
 		let total: number = 0;
+		let diff_list: string = '';
 		for (let index in storage) {
 			total ++;
 			let hashList = storage[index];
@@ -81,11 +82,15 @@ export class Spy {
 				}
 				prevhash = hash;
 			}
-			if (diff) count ++;
+			if (diff) {
+				count ++;
+				diff_list = diff_list + index + '     ';
+			}
 			else {
 				delete storage[index];
 			}
 		}
-		console.log(`diff count on ${name} = ${count} of ${total}`);
+		console.log(`diff count on ${name} = ${count} of ${total}:`);
+		console.log(diff_list)
 	}
 }

@@ -1,0 +1,29 @@
+{
+	"nodes": [{
+		"name": "iok",
+		"url": "http://10.111.75.242:8080",
+		"file": "md5-iok.json"
+	}, {
+		"name": "itk1",
+		"url": "http://10.111.75.242:8081",
+		"file": "md5-itk1.json"
+	}, {
+		"name": "itk2",
+		"url": "http://10.111.75.242:8082",
+		"file": "md5-itk2.json"
+	}, {
+		"name": "eok",
+		"url": "http://svrw-isugt-wb.svrw.oao.rzd:8081",
+		"file": "md5-eok.json"
+	}, {
+		"name": "etk1",
+		"url": "http://svrw-isugt-wb.svrw.oao.rzd:8080",
+		"file": "md5-etk1.json"
+	}, {
+		"name": "etk2",
+		"url": "http://svrw-isugt-wb.svrw.oao.rzd:8088",
+		"file": "md5-etk2.json"
+	}],
+	"masterNode": "etk2",
+	"requestTimeout": 100000
+}
