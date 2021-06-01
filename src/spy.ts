@@ -131,8 +131,13 @@ export class Spy {
 					family: 2,
 					size: 9,
 					bold: true
-				}				
-				for (let nodeName in hashList) {
+				}
+				if (rowIndex === 4895) {
+					let aaa = 0;
+				}
+				//for (let nodeName in hashList) {
+				for (let node of this.config.nodes) {
+					let nodeName = node.name;
 					let hash: string = hashList[nodeName];
 					let color = 'FF000000';
 					let bold = false;
