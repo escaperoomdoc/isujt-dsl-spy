@@ -119,6 +119,9 @@ export class Spy {
 				}
 			}
 			// set values
+			for (let node of this.config.nodes) {
+				node.diffs = 0;
+			}
 			let rowIndex = 1;
 			for (let itemName in storage) {
 				let hashList = storage[itemName];
@@ -132,10 +135,6 @@ export class Spy {
 					size: 9,
 					bold: true
 				}
-				if (rowIndex === 4895) {
-					let aaa = 0;
-				}
-				//for (let nodeName in hashList) {
 				for (let node of this.config.nodes) {
 					let nodeName = node.name;
 					let hash: string = hashList[nodeName];
@@ -146,6 +145,7 @@ export class Spy {
 						if (hashList[nodeName] != hashList[this.config.masterNode]) {
 							color = 'FFAA0000';
 							bold = true;
+							node.diffs ++;
 						}
 					}
 					let cell = row.getCell(++columnIndex);
@@ -157,6 +157,16 @@ export class Spy {
 						size: 8,
 						bold: bold
 					}
+				}
+				columnIndex = 2;
+				let headRow = sheet.getRow(1);
+				for (let node of this.config.nodes) {
+					if (node.name !== this.config.masterNode) {
+						let cell = headRow.getCell(columnIndex);
+						let name: string = node.name + ` (diff=${node.diffs})`;
+						cell.value = name;
+					}
+					columnIndex ++;
 				}
 			}
 		}
