@@ -43,6 +43,7 @@ jspm_packages/
 package-lock.json
 build/
 data/
+backup/
 .vscode/
 .env
 
