@@ -1,5 +1,6 @@
 import axios from 'axios';
 import {fsread} from "./app";
+import {fswrite} from "./app";
 
 export interface IDslNodeResult {
 	status: string,
@@ -11,12 +12,14 @@ export class DslNode {
 	name: string;
 	baseUrl: string;
 	jsonFile?: string;
+	filesPolicy: any;
 	hashes: any;
-	constructor(cfg: any) {
+	constructor(cfg: any, filesPolicy: any) {
 		try {
 			this.name = cfg.name;
 			this.baseUrl = cfg.url;
 			this.jsonFile = cfg.file;
+			this.filesPolicy = filesPolicy;
 		}
 		catch(error) {
 			console.log(error);
@@ -25,7 +28,7 @@ export class DslNode {
 	}
 	private async get(endpoint: string, parameters?: any): Promise<IDslNodeResult> {
 		try {
-			if (this.jsonFile) {
+			if (this.jsonFile && this.filesPolicy.emulate) {
 				let data = (await fsread(this.jsonFile)).toString();
 				return {
 					status: 'ok',
@@ -43,6 +46,9 @@ export class DslNode {
 				url += paramstring;
 			}
 			var result = await axios.get(url);
+			if (this.jsonFile && !this.filesPolicy.emulate && this.filesPolicy.rewrite) {
+				await fswrite(this.jsonFile, JSON.stringify(result.data));
+			}
 			return {
 				status: 'ok',
 				payload: result.data
