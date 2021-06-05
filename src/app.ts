@@ -15,3 +15,26 @@ export const logger = new Logger({file: false, console: true});
 import {Spy} from './spy';
 export const spy = new Spy();
 spy.run();
+
+/*
+// debug: temp http server
+import express, {Application, Request, Response, NextFunction} from 'express';
+import http from 'http';
+var app: Application = express();
+var httpServer: http.Server = http.createServer(app);
+app.use(express.json({limit: '50MB'}));
+app.all('*', async (req: Request, res: Response, next: NextFunction) => {
+	return res.status(200).json(null);
+});
+const httpServerPort = 80;
+httpServer.listen(httpServerPort, () => {
+   console.log(`tinmine started on ${httpServerPort}...`);
+});
+// handle server error on startup
+httpServer.on('error', (e: any) => {
+   if (e.code === 'EADDRINUSE') {
+      console.log(`cannot start tinmine on ${httpServerPort}...`);
+      process.exit(1);
+   }
+})
+*/

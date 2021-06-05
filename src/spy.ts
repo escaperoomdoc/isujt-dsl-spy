@@ -28,6 +28,7 @@ export class Spy {
 			setTimeout(() => this.job(), 10);
 		}
 		catch(error) {
+			console.log(error);
 		}		
 	}	
 	private async job() {
@@ -36,11 +37,20 @@ export class Spy {
 				console.log(`new job started after ${this.config.requestTimeout} ms...`);
 				this.prevTime = Date.now();
 				for (let node of this.nodes) {
-					let hashes = await node.getHashes();
-					if (hashes) console.log(`success request from ${node.baseUrl}`);
-					else console.log(`error in request from ${node.baseUrl}`);
+					try {
+						let hashes = await node.getHashes();
+						if (hashes) console.log(`success request from ${node.baseUrl}`);
+						else console.log(`error in request from ${node.baseUrl}`);
+						if (this.config.forwarding && this.config.forwarding.use) {
+							await node.postHashes(this.config.forwarding.url);
+							console.log(`success forwarding to ${this.config.forwarding.url}`);
+						}
+					}
+					catch(error) {
+						console.log(error)
+					}
 				}
-				this.getdiff();
+				await this.handleResults();
 			}
 		}
 		catch(error) {
@@ -48,7 +58,7 @@ export class Spy {
 		}
 		setTimeout(() => this.job(), 1000);
 	}
-	private async getdiff() {
+	private async handleResults() {
 		let master = null;
 		var report: any = {
 			modules: {},
@@ -64,7 +74,7 @@ export class Spy {
 				report.classes[item][node.name] = node.hashes.data.clases[item];
 			}
 		}
-		await this.excelReport(report.modules);
+		await this.excelReport(report);
 		//this.diffStorage(report.modules, 'modules');
 		//this.diffStorage(report.classes, 'classes');
 	}
@@ -96,14 +106,24 @@ export class Spy {
 		console.log(`diff count on ${name} = ${count} of ${total}:`);
 		console.log(diff_list)
 	}
-	private async excelReport(storage: any) {
-		const workbook = new ejs.Workbook();
-		const sheet = workbook.addWorksheet('ptk');
+	private async excelReport(report: any) {
+		try {
+			const workbook = new ejs.Workbook();
+			this.excelReportSheet(workbook, report.modules, 'modules');
+			this.excelReportSheet(workbook, report.classes, 'classes');
+			await workbook.xlsx.writeFile('report.xlsx');
+			if (this.config.files.emulate) exit();
+		}
+		catch(error) {
+		}
+	}
+	private async excelReportSheet(workbook: ejs.Workbook, storage: any, sheetName: string) {
+		const sheet = workbook.addWorksheet(sheetName);
 		try {
 			// set header
 			let columnIndex = 1;
 			sheet.getColumn(columnIndex).width = 40;
-			sheet.getColumn(columnIndex).header = 'module';
+			sheet.getColumn(columnIndex).header = sheetName;
 			for (let node of this.config.nodes) {
 				columnIndex ++;
 				let column = sheet.getColumn(columnIndex);
@@ -173,7 +193,5 @@ export class Spy {
 		catch(error) {
 			console.log(error);
 		}
-		await workbook.xlsx.writeFile('report.xlsx');
-		if (this.config.files.emulate) exit();
 	}
 }

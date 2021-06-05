@@ -1,6 +1,12 @@
 import axios from 'axios';
 import {fsread} from "./app";
 import {fswrite} from "./app";
+import https from 'https';
+
+// At request level
+const agent = new https.Agent({  
+	rejectUnauthorized: false
+});
 
 export interface IDslNodeResult {
 	status: string,
@@ -68,6 +74,14 @@ export class DslNode {
 			type_response: 'md5'
 		});
 		return this.hashes = (result.status && result.status === 'ok') ? result.payload : null;
+	}
+	public async postHashes(endpoint: string) {
+		let data = {
+			name: this.name,
+			time: Date.now(),
+			payload: this.hashes
+		};
+		await axios.post(endpoint, data, {httpsAgent: agent});
 	}
 	public async getScript(name: string): Promise<IDslNodeResult> {
 		let result = await this.get('/ajax2.php', {

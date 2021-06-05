@@ -28,6 +28,11 @@
 		"emulate": true,
 		"rewrite": false
 	},
+	"report": true,
+	"forwarding": {
+		"use": false,
+		"url": "https://isujt.dsi.su/cache"
+	},	
 	"masterNode": "eok",
 	"requestTimeout": 100000
 }
