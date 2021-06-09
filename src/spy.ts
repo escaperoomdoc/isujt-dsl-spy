@@ -48,7 +48,7 @@ export class Spy {
 						let hashes = await node.getHashes();
 						if (hashes) console.log(`success request from ${node.baseUrl}`);
 						else console.log(`error in request from ${node.baseUrl}`);
-						if (0 && this.config.server && this.config.server.enabled) {
+						if (this.config.server && this.config.server.enabled) {
 							await node.forwardHashes(this.config.server.urlForwarding);
 							console.log(`success forwarding to ${this.config.server.urlForwarding}`);
 						}
