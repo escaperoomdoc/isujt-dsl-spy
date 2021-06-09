@@ -7,6 +7,11 @@ import {DslNode} from './dsl_node';
 import axios from 'axios';
 import * as ejs from 'exceljs';
 import {httpsAgent} from "./app"
+import * as scheduler from "node-schedule"
+
+const job = scheduler.scheduleJob('0 0 16 * * *', function(){
+	console.log('Today is recognized by Rebecca Black!');
+ });
 
 export class Spy {
 	prevTime: number;
