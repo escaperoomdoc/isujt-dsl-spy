@@ -1,11 +1,12 @@
 import {exit} from 'process';
 import {setInterval} from 'timers';
-
 import {logger} from './app';
 import {fsread} from './app';
 import {fswrite} from './app';
 import {DslNode} from './dsl_node';
+import axios from 'axios';
 import * as ejs from 'exceljs';
+import {httpsAgent} from "./app"
 
 export class Spy {
 	prevTime: number;
@@ -26,6 +27,7 @@ export class Spy {
 				this.nodes.push(new DslNode(node, this.config.files));
 			}
 			setTimeout(() => this.job(), 10);
+			setTimeout(() => this.tasks(), 10);
 		}
 		catch(error) {
 			console.log(error);
@@ -41,9 +43,9 @@ export class Spy {
 						let hashes = await node.getHashes();
 						if (hashes) console.log(`success request from ${node.baseUrl}`);
 						else console.log(`error in request from ${node.baseUrl}`);
-						if (this.config.forwarding && this.config.forwarding.use) {
-							await node.postHashes(this.config.forwarding.url);
-							console.log(`success forwarding to ${this.config.forwarding.url}`);
+						if (0 && this.config.server && this.config.server.enabled) {
+							await node.forwardHashes(this.config.server.urlForwarding);
+							console.log(`success forwarding to ${this.config.server.urlForwarding}`);
 						}
 					}
 					catch(error) {
@@ -58,21 +60,60 @@ export class Spy {
 		}
 		setTimeout(() => this.job(), 1000);
 	}
+	private async tasks() {
+		if (!this.config.server || !this.config.server.enabled) {
+			return;
+		}
+		try {
+			let result: any = await axios.get(this.config.server.urlTasks, {httpsAgent: httpsAgent});
+			for (let task of result.data.tasks) {
+				if (task.task === 'get-module') {
+					console.log(`received task '${task.task}': ${task.name}`);
+					let data: any = {
+						method: 'content',
+						type: 'module',
+						name: task.name,
+						payload: {}
+					};
+					for (let node of this.nodes) {
+						let scriptResult: any = await node.getScript(task.name);
+						data.payload[node.name] = scriptResult && scriptResult.data ? scriptResult.data : null;
+					}
+					//await fswrite('test.json', JSON.stringify(data));
+					let result: any = await axios.post(this.config.server.urlForwarding, data, {httpsAgent: httpsAgent});
+					console.log(`handled task '${task.task}': ${task.name}`);
+				}
+			}
+		}
+		catch(error) {
+			console.log(error);
+		}
+		setTimeout(() => this.tasks(), this.config.server.tasksTimeout);
+	}
 	private async handleResults() {
 		let master = null;
 		var report: any = {
 			modules: {},
-			classes: {}
+			classes: {},
+			files: {}
 		};
 		for (let node of this.nodes) {
+			if (node.hashes.data.modules)
 			for (let item in node.hashes.data.modules) {
 				if (report.modules[item] === undefined) report.modules[item] = {};
 				report.modules[item][node.name] = node.hashes.data.modules[item];
 			}
-			for (let item in node.hashes.data.clases) {
+			if (node.hashes.data.classes)
+			for (let item in node.hashes.data.classes) {
 				if (report.classes[item] === undefined) report.classes[item] = {};
-				report.classes[item][node.name] = node.hashes.data.clases[item];
+				report.classes[item][node.name] = node.hashes.data.classes[item];
 			}
+			if (node.hashes.data.file)
+			for (let item of node.hashes.data.file) {
+				if (!Array.isArray(item)) throw 'not array file-object detected';
+				if (report.files[item[0]] === undefined) report.files[item[0]] = {};
+				report.files[item[0]][node.name] = item[1];
+			}			
 		}
 		await this.excelReport(report);
 		//this.diffStorage(report.modules, 'modules');
@@ -111,8 +152,9 @@ export class Spy {
 			const workbook = new ejs.Workbook();
 			this.excelReportSheet(workbook, report.modules, 'modules');
 			this.excelReportSheet(workbook, report.classes, 'classes');
+			this.excelReportSheet(workbook, report.files, 'files');
 			await workbook.xlsx.writeFile('report.xlsx');
-			if (this.config.files.emulate) exit();
+			//if (this.config.files.emulate) exit();
 		}
 		catch(error) {
 		}

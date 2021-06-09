@@ -1,12 +1,7 @@
 import axios from 'axios';
 import {fsread} from "./app";
 import {fswrite} from "./app";
-import https from 'https';
-
-// At request level
-const agent = new https.Agent({  
-	rejectUnauthorized: false
-});
+import {httpsAgent} from "./app"
 
 export interface IDslNodeResult {
 	status: string,
@@ -18,6 +13,7 @@ export class DslNode {
 	name: string;
 	baseUrl: string;
 	jsonFile?: string;
+	scriptFile?: string;
 	filesPolicy: any;
 	hashes: any;
 	constructor(cfg: any, filesPolicy: any) {
@@ -25,6 +21,7 @@ export class DslNode {
 			this.name = cfg.name;
 			this.baseUrl = cfg.url;
 			this.jsonFile = cfg.file;
+			this.scriptFile = cfg.script;
 			this.filesPolicy = filesPolicy;
 		}
 		catch(error) {
@@ -35,10 +32,19 @@ export class DslNode {
 	private async get(endpoint: string, parameters?: any): Promise<IDslNodeResult> {
 		try {
 			if (this.jsonFile && this.filesPolicy.emulate) {
-				let data = (await fsread(this.jsonFile)).toString();
-				return {
-					status: 'ok',
-					payload: JSON.parse(data)
+				if (parameters && parameters.type_response === 'md5') {
+					let data = (await fsread(this.jsonFile as string)).toString();
+					return {
+						status: 'ok',
+						payload: JSON.parse(data)
+					}
+				}
+				if (parameters && parameters.script_name) {
+					let data = (await fsread(this.scriptFile as string)).toString();
+					return {
+						status: 'ok',
+						payload: JSON.parse(data)
+					}
 				}
 			}
 			var url: string = this.baseUrl + endpoint;
@@ -75,13 +81,30 @@ export class DslNode {
 		});
 		return this.hashes = (result.status && result.status === 'ok') ? result.payload : null;
 	}
-	public async postHashes(endpoint: string) {
-		let data = {
-			name: this.name,
-			time: Date.now(),
-			payload: this.hashes
-		};
-		await axios.post(endpoint, data, {httpsAgent: agent});
+	public async forwardHashes(endpoint: string) {
+		try {
+			var files: any = {};
+			if (this.hashes.data.file)
+			for (let item of this.hashes.data.file) {
+				if (!Array.isArray(item)) throw 'not array file-object detected';
+				if (files[item[0]] === undefined) files[item[0]] = {};
+				files[item[0]] = item[1];
+			}
+			let data = {
+				method: 'hashmap',
+				name: this.name,
+				payload: {
+					modules: this.hashes.data.modules,
+					classes: this.hashes.data.classes,
+					files: files
+				}
+			};
+			//await fswrite('test.json', JSON.stringify(data));
+			let result: any = await axios.post(endpoint, data, {httpsAgent: httpsAgent});
+		}
+		catch(error) {
+			console.log(error);
+		}
 	}
 	public async getScript(name: string): Promise<IDslNodeResult> {
 		let result = await this.get('/ajax2.php', {

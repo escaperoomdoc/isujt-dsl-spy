@@ -2,37 +2,45 @@
 	"nodes": [{
 		"name": "eok",
 		"url": "http://svrw-isugt-wb.svrw.oao.rzd:8081",
-		"file": "md5-eok.json"
+		"file": "md5-eok.json",
+		"script": "script-eok.ts"
 	}, {
 		"name": "etk1",
 		"url": "http://svrw-isugt-wb.svrw.oao.rzd:8080",
-		"file": "md5-etk1.json"
+		"file": "md5-etk1.json",
+		"script": "script-etk1.ts"
 	}, {
 		"name": "etk2",
 		"url": "http://svrw-isugt-wb.svrw.oao.rzd:8088",
-		"file": "md5-etk2.json"
+		"file": "md5-etk2.json",
+		"script": "script-etk2.ts"
 	}, {
 		"name": "iok",
 		"url": "http://10.111.75.242:8080",
-		"file": "md5-iok.json"
+		"file": "md5-iok.json",
+		"script": "script-iok.ts"
 	}, {
 		"name": "itk1",
-		"url": "http://10.111.75.242:8081",
-		"file": "md5-itk1.json"
+		"url": "http://10.111.75.242:8082",
+		"file": "md5-itk1.json",
+		"script": "script-itk1.ts"
 	}, {
 		"name": "itk2",
-		"url": "http://10.111.75.242:8082",
-		"file": "md5-itk2.json"
-	}],
+		"url": "http://10.111.75.242:8081",
+		"file": "md5-itk2.json",
+		"script": "script-itk2.ts"
+	}],	
+	"masterNode": "eok",
+	"requestTimeout": 100000000,
 	"files": {
 		"emulate": true,
 		"rewrite": false
 	},
 	"report": true,
-	"forwarding": {
-		"use": false,
-		"url": "https://isujt.dsi.su/cache"
-	},	
-	"masterNode": "eok",
-	"requestTimeout": 100000
+	"server": {
+		"enabled": true,
+		"urlForwarding": "https://isujt.dsi.su/cache",
+		"urlTasks": "https://isujt.dsi.su/tasks",
+		"tasksTimeout": 2000		
+	}
 }
