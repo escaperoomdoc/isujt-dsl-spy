@@ -60,9 +60,9 @@ export class Spy {
 	}
 	private async requestHashes(node: DslNode) {
 		try {
-			console.log(`requesting hashes from ${node.baseUrl}...`);
+			console.log(`requesting hashes from ${node.name}: ${node.baseUrl}...`);
 			let hashes = await node.getHashes();
-			if (hashes) console.log(`success request from ${node.baseUrl}`);
+			if (hashes) console.log(`success request from ${node.name}: ${node.baseUrl}`);
 			else console.log(`error in request from ${node.baseUrl}`);
 			if (this.config.server && this.config.server.enabled) {
 				await this.forwardHashes(node);
@@ -117,17 +117,18 @@ export class Spy {
 						payload: {}
 					};
 					for (let node of this.nodes) {
+						console.log(`loading script '${node.name}': ${task.name}...`);
 						let scriptResult: any = await node.getScript(task.name);
 						data.payload[node.name] = scriptResult && scriptResult.data ? scriptResult.data : null;
 					}
 					//await fswrite('test.json', JSON.stringify(data));
 					//let result: any = await axios.post(this.config.server.urlForwarding, data, {httpsAgent: httpsAgent});
+					console.log(`forwarding scripts to server ${this.config.server.urlForwarding}...`);
 					let result: any = await ppost(this.config.server.urlForwarding, JSON.stringify(data), this.config.server.proxy);
 					console.log(`handled task '${task.task}': ${task.name}`);
 				}
 				if (task.task === 'get-hash') {
 					for (let node of this.nodes) {
-						task.name = 'etk2';
 						if (task.name === null || task.name === node.name)
 						await this.requestHashes(node);
 					}					
