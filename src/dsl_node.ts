@@ -1,7 +1,6 @@
 import axios from 'axios';
 import {fsread} from "./app";
 import {fswrite} from "./app";
-import {httpsAgent} from "./app"
 
 export interface IDslNodeResult {
 	status: string,
@@ -80,31 +79,6 @@ export class DslNode {
 			type_response: 'md5'
 		});
 		return this.hashes = (result.status && result.status === 'ok') ? result.payload : null;
-	}
-	public async forwardHashes(endpoint: string) {
-		try {
-			var files: any = {};
-			if (this.hashes.data.file)
-			for (let item of this.hashes.data.file) {
-				if (!Array.isArray(item)) throw 'not array file-object detected';
-				if (files[item[0]] === undefined) files[item[0]] = {};
-				files[item[0]] = item[1];
-			}
-			let data = {
-				method: 'hashmap',
-				name: this.name,
-				payload: {
-					modules: this.hashes.data.modules,
-					classes: this.hashes.data.classes,
-					files: files
-				}
-			};
-			//await fswrite('test.json', JSON.stringify(data));
-			let result: any = await axios.post(endpoint, data, {httpsAgent: httpsAgent});
-		}
-		catch(error) {
-			console.log(error);
-		}
 	}
 	public async getScript(name: string): Promise<IDslNodeResult> {
 		let result = await this.get('/ajax2.php', {

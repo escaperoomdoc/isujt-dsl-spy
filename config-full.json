@@ -31,16 +31,19 @@
 		"script": "script-itk2.ts"
 	}],	
 	"masterNode": "eok",
+	"requestScheduler": false,
 	"requestTimeout": 100000000,
+	"exitOnJobFinished": false,
 	"files": {
 		"emulate": true,
 		"rewrite": false
 	},
-	"report": true,
+	"excelReport": true,
 	"server": {
 		"enabled": true,
 		"urlForwarding": "https://isujt.dsi.su/cache",
 		"urlTasks": "https://isujt.dsi.su/tasks",
-		"tasksTimeout": 2000		
+		"proxy": "http://s.dolganuk:user2021@srvtmg.ctt.com.mps:8080",
+		"tasksTimeout": 2000
 	}
 }

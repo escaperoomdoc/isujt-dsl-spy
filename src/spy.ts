@@ -8,6 +8,8 @@ import axios from 'axios';
 import * as ejs from 'exceljs';
 import {httpsAgent} from "./app"
 import * as scheduler from "node-schedule"
+import {pget} from "./prequest"
+import {ppost} from "./prequest"
 
 const job = scheduler.scheduleJob('0 0 16 * * *', function(){
 	console.log('Today is recognized by Rebecca Black!');
@@ -31,7 +33,9 @@ export class Spy {
 			for (let node of this.config.nodes) {
 				this.nodes.push(new DslNode(node, this.config.files));
 			}
-			setTimeout(() => this.job(), 10);
+			if (this.config.requestScheduler) {
+				setTimeout(() => this.job(), 10);
+			}
 			setTimeout(() => this.tasks(), 10);
 		}
 		catch(error) {
@@ -44,18 +48,7 @@ export class Spy {
 				console.log(`new job started after ${this.config.requestTimeout} ms...`);
 				this.prevTime = Date.now();
 				for (let node of this.nodes) {
-					try {
-						let hashes = await node.getHashes();
-						if (hashes) console.log(`success request from ${node.baseUrl}`);
-						else console.log(`error in request from ${node.baseUrl}`);
-						if (this.config.server && this.config.server.enabled) {
-							await node.forwardHashes(this.config.server.urlForwarding);
-							console.log(`success forwarding to ${this.config.server.urlForwarding}`);
-						}
-					}
-					catch(error) {
-						console.log(error)
-					}
+					await this.requestHashes(node);
 				}
 				await this.handleResults();
 			}
@@ -65,13 +58,56 @@ export class Spy {
 		}
 		setTimeout(() => this.job(), 1000);
 	}
+	private async requestHashes(node: DslNode) {
+		try {
+			console.log(`requesting hashes from ${node.baseUrl}...`);
+			let hashes = await node.getHashes();
+			if (hashes) console.log(`success request from ${node.baseUrl}`);
+			else console.log(`error in request from ${node.baseUrl}`);
+			if (this.config.server && this.config.server.enabled) {
+				await this.forwardHashes(node);
+				console.log(`success forwarding to ${this.config.server.urlForwarding}`);
+			}
+		}
+		catch(error) {
+			console.log(error)
+		}
+	}
+	private async forwardHashes(node: DslNode) {
+		try {
+			var files: any = {};
+			if (node.hashes.data.file)
+			for (let item of node.hashes.data.file) {
+				if (!Array.isArray(item)) throw 'not array file-object detected';
+				if (files[item[0]] === undefined) files[item[0]] = {};
+				files[item[0]] = item[1];
+			}
+			let data = {
+				method: 'hashmap',
+				name: node.name,
+				payload: {
+					modules: node.hashes.data.modules,
+					classes: node.hashes.data.classes,
+					files: files
+				}
+			};
+			//await fswrite('test.json', JSON.stringify(data));
+			//let result: any = await axios.post(endpoint, data, {httpsAgent: httpsAgent});
+			let result: any = await ppost(this.config.server.urlForwarding, JSON.stringify(data), this.config.server.proxy);
+		}
+		catch(error) {
+			console.log(error);
+		}		
+	}
 	private async tasks() {
 		if (!this.config.server || !this.config.server.enabled) {
 			return;
 		}
 		try {
-			let result: any = await axios.get(this.config.server.urlTasks, {httpsAgent: httpsAgent});
-			for (let task of result.data.tasks) {
+			//let result: any = await axios.get(this.config.server.urlTasks, {httpsAgent: httpsAgent});
+			let result: any = await pget(this.config.server.urlTasks, this.config.server.proxy);
+			let tasks = JSON.parse(result.body);
+			for (let task of tasks.tasks) {
 				if (task.task === 'get-module') {
 					console.log(`received task '${task.task}': ${task.name}`);
 					let data: any = {
@@ -85,8 +121,16 @@ export class Spy {
 						data.payload[node.name] = scriptResult && scriptResult.data ? scriptResult.data : null;
 					}
 					//await fswrite('test.json', JSON.stringify(data));
-					let result: any = await axios.post(this.config.server.urlForwarding, data, {httpsAgent: httpsAgent});
+					//let result: any = await axios.post(this.config.server.urlForwarding, data, {httpsAgent: httpsAgent});
+					let result: any = await ppost(this.config.server.urlForwarding, JSON.stringify(data), this.config.server.proxy);
 					console.log(`handled task '${task.task}': ${task.name}`);
+				}
+				if (task.task === 'get-hash') {
+					for (let node of this.nodes) {
+						task.name = 'etk2';
+						if (task.name === null || task.name === node.name)
+						await this.requestHashes(node);
+					}					
 				}
 			}
 		}
@@ -120,37 +164,9 @@ export class Spy {
 				report.files[item[0]][node.name] = item[1];
 			}			
 		}
-		await this.excelReport(report);
-		//this.diffStorage(report.modules, 'modules');
-		//this.diffStorage(report.classes, 'classes');
-	}
-	private diffStorage(storage: any, name: string) {
-		let count: number = 0;
-		let total: number = 0;
-		let diff_list: string = '';
-		for (let index in storage) {
-			total ++;
-			let hashList = storage[index];
-			let prevhash: string | null = null;
-			let diff: boolean = false;
-			for (let nodeName in hashList) {
-				let hash: string = hashList[nodeName];
-				if (prevhash && prevhash != hash) {
-					diff = true;
-					break;
-				}
-				prevhash = hash;
-			}
-			if (diff) {
-				count ++;
-				diff_list = diff_list + index + '     ';
-			}
-			else {
-				delete storage[index];
-			}
+		if (this.config.excelReport) {
+			await this.excelReport(report);
 		}
-		console.log(`diff count on ${name} = ${count} of ${total}:`);
-		console.log(diff_list)
 	}
 	private async excelReport(report: any) {
 		try {
@@ -159,7 +175,8 @@ export class Spy {
 			this.excelReportSheet(workbook, report.classes, 'classes');
 			this.excelReportSheet(workbook, report.files, 'files');
 			await workbook.xlsx.writeFile('report.xlsx');
-			//if (this.config.files.emulate) exit();
+			console.log('excel report successfuly generated');
+			if (this.config.exitOnJobFinished) exit();
 		}
 		catch(error) {
 		}
