@@ -11,31 +11,33 @@ import * as scheduler from "node-schedule"
 import {pget} from "./prequest"
 import {ppost} from "./prequest"
 
-const job = scheduler.scheduleJob('0 0 16 * * *', function(){
-	console.log('Today is recognized by Rebecca Black!');
- });
-
 export class Spy {
-	prevTime: number;
 	nodes: Array<DslNode>;
 	config: any;
+	schedulerJob: scheduler.Job | null;
 	constructor() {
-		this.prevTime = 0;
 		this.nodes = [];
+		this.schedulerJob = null;
 	}
 	async run() {
 		try {
 			let cfg = (await fsread('./config.json')).toString();
 			this.config = JSON.parse(cfg);
+			console.log('isujt-dsl-spy application started...');
 			if (!this.config.requestTimeout || this.config.requestTimeout < 5000) {
 				this.config.requestTimeout = 5000;
 			}
 			for (let node of this.config.nodes) {
 				this.nodes.push(new DslNode(node, this.config.files));
 			}
-			if (this.config.requestScheduler) {
-				setTimeout(() => this.job(), 10);
+			if (this.config.scheduler.enabled) {
+				this.schedulerJob = scheduler.scheduleJob(this.config.scheduler.mask, () => {
+					this.job();
+				});				
 			}
+			if (this.config.runJobOnStartup) {
+				setTimeout(() => this.job(), 10);
+			}			
 			setTimeout(() => this.tasks(), 10);
 		}
 		catch(error) {
@@ -44,19 +46,15 @@ export class Spy {
 	}	
 	private async job() {
 		try {
-			if (Date.now() >= this.prevTime + this.config.requestTimeout) {
-				console.log(`new job started after ${this.config.requestTimeout} ms...`);
-				this.prevTime = Date.now();
-				for (let node of this.nodes) {
-					await this.requestHashes(node);
-				}
-				await this.handleResults();
+			console.log(`new job started after ${this.config.requestTimeout} ms...`);
+			for (let node of this.nodes) {
+				await this.requestHashes(node);
 			}
+			await this.handleResults();
 		}
 		catch(error) {
 			console.log(`job error: ${error}`);
 		}
-		setTimeout(() => this.job(), 1000);
 	}
 	private async requestHashes(node: DslNode) {
 		try {
@@ -129,8 +127,9 @@ export class Spy {
 				}
 				if (task.task === 'get-hash') {
 					for (let node of this.nodes) {
-						if (task.name === null || task.name === node.name)
-						await this.requestHashes(node);
+						if (!task.name || task.name === 'null' || task.name === node.name) {
+							await this.requestHashes(node);
+						}
 					}					
 				}
 			}

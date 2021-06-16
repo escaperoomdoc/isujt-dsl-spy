@@ -3,39 +3,43 @@
 		"name": "eok",
 		"url": "http://svrw-isugt-wb.svrw.oao.rzd:8081",
 		"file": "md5-eok.json",
-		"script": "script-eok.ts"
+		"script": "script-eok.rb"
 	}, {
 		"name": "etk1",
 		"url": "http://svrw-isugt-wb.svrw.oao.rzd:8080",
 		"file": "md5-etk1.json",
-		"script": "script-etk1.ts"
+		"script": "script-etk1.rb"
 	}, {
 		"name": "etk2",
 		"url": "http://svrw-isugt-wb.svrw.oao.rzd:8088",
 		"file": "md5-etk2.json",
-		"script": "script-etk2.ts"
+		"script": "script-etk2.rb"
 	}, {
 		"name": "iok",
 		"url": "http://10.111.75.242:8080",
 		"file": "md5-iok.json",
-		"script": "script-iok.ts"
+		"script": "script-iok.rb"
 	}, {
 		"name": "itk1",
 		"url": "http://10.111.75.242:8082",
 		"file": "md5-itk1.json",
-		"script": "script-itk1.ts"
+		"script": "script-itk1.rb"
 	}, {
 		"name": "itk2",
 		"url": "http://10.111.75.242:8081",
 		"file": "md5-itk2.json",
-		"script": "script-itk2.ts"
+		"script": "script-itk2.rb"
 	}],	
 	"masterNode": "eok",
-	"requestScheduler": false,
-	"requestTimeout": 100000000,
+	"scheduler": {
+		"enabled": true,
+		"mask": "10 0 0 * * *"
+	},
+	"requestTimeout": 1000000000,
 	"exitOnJobFinished": false,
+	"runJobOnStartup": false,
 	"files": {
-		"emulate": true,
+		"emulate": false,
 		"rewrite": false
 	},
 	"excelReport": true,
