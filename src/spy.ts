@@ -4,20 +4,21 @@ import {logger} from './app';
 import {fsread} from './app';
 import {fswrite} from './app';
 import {DslNode} from './dsl_node';
-import axios from 'axios';
 import * as ejs from 'exceljs';
-import {httpsAgent} from "./app"
-import * as scheduler from "node-schedule"
-import {pget} from "./prequest"
-import {ppost} from "./prequest"
+import * as scheduler from "node-schedule";
+import {pget} from "./prequest";
+import {ppost} from "./prequest";
+import {Telegraf} from 'telegraf';
 
 export class Spy {
 	nodes: Array<DslNode>;
 	config: any;
 	schedulerJob: scheduler.Job | null;
+	bot: Telegraf | null;
 	constructor() {
 		this.nodes = [];
 		this.schedulerJob = null;
+		this.bot = null;
 	}
 	async run() {
 		try {
@@ -37,16 +38,50 @@ export class Spy {
 			}
 			if (this.config.runJobOnStartup) {
 				setTimeout(() => this.job(), 10);
-			}			
+			}
 			setTimeout(() => this.tasks(), 10);
+			if (this.config.telegram.enabled) {
+				this.bot = new Telegraf(this.config.telegram.token);
+				if (this.bot) {
+					this.bot.start(async ctx => {
+						try {
+							ctx.reply(`isujt-dsl-spy: bot started at the telegram chat ${ctx.message.chat.id}`);
+							console.log(`isujt-dsl-spy bot started at the telegram chat ${ctx.message.chat.id}`);
+						}
+						catch(error) {
+							console.log(error);
+						}
+					})
+					this.bot.command('ping', async ctx => {
+						try {
+							ctx.reply('isujt-dsl-spy: pong');
+						}
+						catch(error) {
+							console.log(error);
+						}							
+					})
+					this.bot.command('job', async ctx => {
+						try {
+							setTimeout(() => this.job(), 10);
+							ctx.reply('isujt-dsl-spy: new job started...');
+						}
+						catch(error) {
+							console.log(error);
+						}							
+					})					
+					this.bot.launch();
+					process.once('SIGINT', () => (this.bot as Telegraf).stop('SIGINT'));
+					process.once('SIGTERM', () => (this.bot as Telegraf).stop('SIGTERM'));
+				}
+			}
 		}
 		catch(error) {
 			console.log(error);
-		}		
+		}
 	}	
 	private async job() {
 		try {
-			console.log(`new job started after ${this.config.requestTimeout} ms...`);
+			console.log(`new job started...`);
 			for (let node of this.nodes) {
 				await this.requestHashes(node);
 			}
@@ -166,6 +201,26 @@ export class Spy {
 		}
 		if (this.config.excelReport) {
 			await this.excelReport(report);
+			await this.botMailing();
+		}
+	}
+	private async botMailing() {
+		if (!this.bot) return;
+		try {
+			let chatsArray = this.config.telegram.chats;
+			let now = new Date();
+			let data: any = await fsread('./report.xlsx');
+			for (const chat of chatsArray) {
+				//let msg: string = now.toString() + ': new report generated';
+				//await this.bot.telegram.sendMessage(chat, msg);
+				await this.bot.telegram.sendDocument(chat, {
+					source: data,
+					filename: './isujt-dsl-files-report.xlsx'
+				});
+			}
+		}
+		catch(error) {
+			console.log(error);
 		}
 	}
 	private async excelReport(report: any) {

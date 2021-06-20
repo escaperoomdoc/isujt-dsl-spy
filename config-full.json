@@ -35,7 +35,6 @@
 		"enabled": true,
 		"mask": "10 0 0 * * *"
 	},
-	"requestTimeout": 1000000000,
 	"exitOnJobFinished": false,
 	"runJobOnStartup": false,
 	"files": {
@@ -49,5 +48,10 @@
 		"urlTasks": "https://isujt.dsi.su/tasks",
 		"proxy": "http://s.dolganuk:user2021@srvtmg.ctt.com.mps:8080",
 		"tasksTimeout": 2000
+	},
+	"telegram": {
+		"enabled": true,
+		"token": "1600511954:AAHO_BsqXBwPltv0kbO0E_oPo7vR7tXWz_o",
+		"chats": ["-522584460", "491231518"]
 	}
 }
