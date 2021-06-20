@@ -46,8 +46,11 @@
 		"enabled": true,
 		"urlForwarding": "https://isujt.dsi.su/cache",
 		"urlTasks": "https://isujt.dsi.su/tasks",
-		"proxy": "http://s.dolganuk:user2021@srvtmg.ctt.com.mps:8080",
 		"tasksTimeout": 2000
+	},
+	"proxy": {
+		"enabled": true,
+		"url": "http://s.dolganuk:user2021@srvtmg.ctt.com.mps:8080"
 	},
 	"telegram": {
 		"enabled": true,

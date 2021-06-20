@@ -9,6 +9,7 @@ import * as scheduler from "node-schedule";
 import {pget} from "./prequest";
 import {ppost} from "./prequest";
 import {Telegraf} from 'telegraf';
+import {HttpsProxyAgent} from 'https-proxy-agent';
 
 export class Spy {
 	nodes: Array<DslNode>;
@@ -41,7 +42,14 @@ export class Spy {
 			}
 			setTimeout(() => this.tasks(), 10);
 			if (this.config.telegram.enabled) {
-				this.bot = new Telegraf(this.config.telegram.token);
+				if (this.config.proxy.enabled) {
+					this.bot = new Telegraf(this.config.telegram.token, {
+						telegram: {
+						  agent: new HttpsProxyAgent(this.config.proxy.url)
+						}
+					})
+				}
+				else this.bot = new Telegraf(this.config.telegram.token);
 				if (this.bot) {
 					this.bot.start(async ctx => {
 						try {
@@ -126,7 +134,7 @@ export class Spy {
 			};
 			//await fswrite('test.json', JSON.stringify(data));
 			//let result: any = await axios.post(endpoint, data, {httpsAgent: httpsAgent});
-			let result: any = await ppost(this.config.server.urlForwarding, JSON.stringify(data), this.config.server.proxy);
+			let result: any = await ppost(this.config.server.urlForwarding, JSON.stringify(data), this.config.proxy.enabled ? this.config.proxy.url : null);
 		}
 		catch(error) {
 			console.log(error);
@@ -138,7 +146,7 @@ export class Spy {
 		}
 		try {
 			//let result: any = await axios.get(this.config.server.urlTasks, {httpsAgent: httpsAgent});
-			let result: any = await pget(this.config.server.urlTasks, this.config.server.proxy);
+			let result: any = await pget(this.config.server.urlTasks, this.config.proxy.enabled ? this.config.proxy.url : null);
 			let tasks = JSON.parse(result.body);
 			for (let task of tasks.tasks) {
 				if (task.task === 'get-module') {
@@ -157,7 +165,7 @@ export class Spy {
 					//await fswrite('test.json', JSON.stringify(data));
 					//let result: any = await axios.post(this.config.server.urlForwarding, data, {httpsAgent: httpsAgent});
 					console.log(`forwarding scripts to server ${this.config.server.urlForwarding}...`);
-					let result: any = await ppost(this.config.server.urlForwarding, JSON.stringify(data), this.config.server.proxy);
+					let result: any = await ppost(this.config.server.urlForwarding, JSON.stringify(data), this.config.proxy.enabled ? this.config.proxy.url : null);
 					console.log(`handled task '${task.task}': ${task.name}`);
 				}
 				if (task.task === 'get-hash') {
