@@ -23,6 +23,12 @@ export class Spy {
 		this.bot = null;
 		this.jobEngaged = false;
 	}
+	public getNode(name: string): DslNode | null {
+		for (let node of this.nodes) {
+			if (node.name === name) return node;
+		}
+		return null;
+	}
 	async run() {
 		try {
 			let cfg = (await fsread('./config.json')).toString();
@@ -66,21 +72,36 @@ export class Spy {
 						try {
 							if (this.jobEngaged) throw 'job is engaged'
 							this.jobEngaged = true;
-							let cmd = ctx.update.message.text.split(' ');
-							if (cmd[1] === 'ping') {
+							let cmds = ctx.update.message.text.split(' ');
+							if (cmds[1] === 'ping') {
 								ctx.reply('dsl: pong');
 							}
-							if (cmd[1] === 'update') {
-								ctx.reply('dsl: update job started...');
+							if (cmds[1] === 'update') {
+								ctx.reply('dsl: update job started, wait several minutes...');
 								for (let node of this.nodes) {
-									if (!cmd[2] || cmd[2] === node.name) {
+									if (!cmds[2] || cmds[2] === node.name) {
 										await this.requestHashes(node);
 									}
 								}
 								await this.handleResults();
 							}
-							if (cmd[1] === 'diff') {
-							}							
+							if (cmds[1] === 'diff') {
+								if (cmds[2] === 'module') {
+									if (!cmds[3]) throw 'script name not specified';
+									if (!cmds[4]) throw 'PTK not specified';
+									let targetNode: DslNode | null = this.getNode(cmds[4]);
+									if (!targetNode) throw 'PTK not found';
+									let masterNode = this.getNode(this.config.masterNode);
+									if (!masterNode) throw 'masterNode not specified in config file';
+									await ctx.reply('dsl: diff job started, wait several seconds...');
+									let master: any = await masterNode.getScript(cmds[3]);
+									let target: any = await targetNode.getScript(cmds[3]);
+									if (!master || !master.data || typeof master.data !== 'string') throw `error on node '${masterNode.name}' ${cmds[2]}: ${cmds[3]}`;
+									if (!target || !target.data || typeof target.data !== 'string') throw `error on node '${targetNode.name}' ${cmds[2]}: ${cmds[3]}`;
+									let a = 0;
+								}
+								else throw `diff ${cmds[2]} not implemented`
+							}
 						}
 						catch(error) {
 							let error_string: string = 'dsl error: ';
@@ -240,7 +261,7 @@ export class Spy {
 				//await this.bot.telegram.sendMessage(chat, msg);
 				await this.bot.telegram.sendDocument(chat, {
 					source: data,
-					filename: './isujt-dsl-files-report.xlsx'
+					filename: './dsl-report.xlsx'
 				});
 			}
 		}
