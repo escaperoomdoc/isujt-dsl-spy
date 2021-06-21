@@ -16,10 +16,12 @@ export class Spy {
 	config: any;
 	schedulerJob: scheduler.Job | null;
 	bot: Telegraf | null;
+	jobEngaged: boolean;
 	constructor() {
 		this.nodes = [];
 		this.schedulerJob = null;
 		this.bot = null;
+		this.jobEngaged = false;
 	}
 	async run() {
 		try {
@@ -60,22 +62,34 @@ export class Spy {
 							console.log(error);
 						}
 					})
-					this.bot.command('ping', async ctx => {
+					this.bot.command('dsl', async ctx => {
 						try {
-							ctx.reply('isujt-dsl-spy: pong');
+							if (this.jobEngaged) throw 'job is engaged'
+							this.jobEngaged = true;
+							let cmd = ctx.update.message.text.split(' ');
+							if (cmd[1] === 'ping') {
+								ctx.reply('dsl: pong');
+							}
+							if (cmd[1] === 'update') {
+								ctx.reply('dsl: update job started...');
+								for (let node of this.nodes) {
+									if (!cmd[2] || cmd[2] === node.name) {
+										await this.requestHashes(node);
+									}
+								}
+								await this.handleResults();
+							}
+							if (cmd[1] === 'diff') {
+							}							
 						}
 						catch(error) {
+							let error_string: string = 'dsl error: ';
+							if (typeof error === 'string') error_string += error;
+							else error_string += 'smth goes wrong :('
 							console.log(error);
-						}							
-					})
-					this.bot.command('job', async ctx => {
-						try {
-							setTimeout(() => this.job(), 10);
-							ctx.reply('isujt-dsl-spy: new job started...');
+							ctx.reply(error_string);
 						}
-						catch(error) {
-							console.log(error);
-						}							
+						this.jobEngaged = false;
 					})					
 					this.bot.launch();
 					process.once('SIGINT', () => (this.bot as Telegraf).stop('SIGINT'));
@@ -103,7 +117,10 @@ export class Spy {
 		try {
 			console.log(`requesting hashes from ${node.name}: ${node.baseUrl}...`);
 			let hashes = await node.getHashes();
-			if (hashes) console.log(`success request from ${node.name}: ${node.baseUrl}`);
+			if (hashes) {
+				node.timeofHashes = Date.now();
+				console.log(`success request from ${node.name}: ${node.baseUrl}`);
+			}
 			else throw `error in request from ${node.name}: ${node.baseUrl}`;
 			if (this.config.server && this.config.server.enabled) {
 				await this.forwardHashes(node);
@@ -266,18 +283,43 @@ export class Spy {
 				}
 			}
 			// set values
+			let rowIndex = 2;
+			columnIndex = 0;
+			let font = {
+				name: 'Arial',
+				color: { argb: 'FF800080' },
+				family: 2,
+				size: 8,
+				bold: true
+			}
+			let row = sheet.getRow(rowIndex);
+			let cell = row.getCell(++columnIndex);
+			cell.value = '';
+			cell.font = font;
+			for (let node of this.nodes) {
+				let cell = row.getCell(++columnIndex);
+				let dt: Date = new Date(node.timeofHashes - new Date().getTimezoneOffset() * 60000);
+				cell.value = dt.toISOString();
+				cell.font = font;
+			}
+			// set values
+			rowIndex = 2;
 			for (let node of this.config.nodes) {
 				node.diffs = 0;
 			}
-			let rowIndex = 1;
-			for (let itemName in storage) {
-				let hashList = storage[itemName];
+			let sortedArray: any = this.sortStorage(storage);
+			for (let index in sortedArray) {
+				let hashList = sortedArray[index].hashList;
+				let itemName: string = sortedArray[index].name;
+				let diffs: number = sortedArray[index].diffs;
 				let row = sheet.getRow(++rowIndex);
 				columnIndex = 1;
+				let color = 'FF000000';
+				if (diffs === 0) color = 'FFA0A0A0';
 				row.getCell(columnIndex).value = itemName;
 				row.getCell(columnIndex).font = {
 					name: 'Arial Black',
-					color: { argb: 'FF000000' },
+					color: { argb: color },
 					family: 2,
 					size: 9,
 					bold: true
@@ -320,5 +362,25 @@ export class Spy {
 		catch(error) {
 			console.log(error);
 		}
+	}
+	private sortStorage(storage: any) {
+		if (!this.config.masterNode) throw 'sortStorage: masterNode not specified';
+		let result = [];
+		for (let item in storage) {
+			let hashList = storage[item];
+			let diffs: number = 0;
+			for (let node of this.config.nodes) {
+				if (hashList[node.name] != hashList[this.config.masterNode]) {
+					diffs ++;
+				}
+			}
+			result.push({
+				name: item,
+				hashList: hashList,
+				diffs: diffs
+			});
+		}
+		result.sort(function(a, b) {return b.diffs - a.diffs});
+		return result;
 	}
 }

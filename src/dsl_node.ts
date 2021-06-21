@@ -15,6 +15,7 @@ export class DslNode {
 	scriptFile?: string;
 	filesPolicy: any;
 	hashes: any;
+	timeofHashes: number;
 	constructor(cfg: any, filesPolicy: any) {
 		try {
 			this.name = cfg.name;
@@ -22,6 +23,7 @@ export class DslNode {
 			this.jsonFile = cfg.file;
 			this.scriptFile = cfg.script;
 			this.filesPolicy = filesPolicy;
+			this.timeofHashes = 0;
 		}
 		catch(error) {
 			console.log(error);

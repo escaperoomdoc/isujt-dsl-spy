@@ -55,6 +55,6 @@
 	"telegram": {
 		"enabled": true,
 		"token": "1600511954:AAHO_BsqXBwPltv0kbO0E_oPo7vR7tXWz_o",
-		"chats": ["-522584460", "491231518"]
+		"chats": ["491231518"]
 	}
 }
