@@ -90,7 +90,7 @@ export class Spy {
 					setTimeout(() => this.jobHashes(cmds[2] ? cmds[2] : null), 10);
 					ctx.reply('dsl: update hashes job started, wait several minutes...');
 				}
-				if (cmds[1] === 'diff') {
+				if (cmds[1] === 'diff' || cmds[1] === 'fulldiff') {
 					if (this.jobDiffEngaged) throw 'diff job is already in progress now';
 					if (cmds[2] === 'module') {
 						if (!cmds[3]) throw 'script name not specified';
@@ -105,7 +105,8 @@ export class Spy {
 							type: cmds[2],
 							name: cmds[3],
 							targetNode: targetNode,
-							masterNode: masterNode
+							masterNode: masterNode,
+							full: cmds[1] === 'fulldiff' ? true : false
 						}), 10);
 						ctx.reply('dsl: diff job started, wait several seconds...');
 					}
@@ -128,11 +129,18 @@ export class Spy {
 		try {
 			this.jobHashesEngaged = true;
 			console.log(`new job started...`);
+			/*
 			for (let node of this.nodes) {
 				if (!nodeName || nodeName === node.name) {
 					await this.requestHashes(node);
 				}
 			}
+			*/
+			await Promise.all(this.nodes.map(async(node) => {
+				if (!nodeName || nodeName === node.name) {
+					await this.requestHashes(node);
+				}
+			}));
 			await this.handleResults();
 		}
 		catch(error) {
@@ -148,10 +156,13 @@ export class Spy {
 		try {
 			this.jobDiffEngaged = true;
 			if (args.type === 'module') {
+				console.log(`requesting '${args.name}' from ${args.masterNode.name}...`);
 				let master: any = await args.masterNode.getScript(args.name);
+				console.log(`requesting '${args.name}' from ${args.targetNode.name}...`);
 				let target: any = await args.targetNode.getScript(args.name);
 				if (!master || !master.data || typeof master.data !== 'string') throw `error on node '${args.masterNode.name}' ${args.type}: ${args.name}`;
 				if (!target || !target.data || typeof target.data !== 'string') throw `error on node '${args.targetNode.name}' ${args.type}: ${args.name}`;
+				console.log(`comparing...`);
 				var diffResult: string = diff.createTwoFilesPatch(
 					args.name + '#' + args.masterNode.name,
 					args.name + '#' + args.targetNode.name,
@@ -159,8 +170,8 @@ export class Spy {
 					target.data,
 					'', '', 
 					{
-						context: 10000
-					}					
+						context: args.full ? 10000 : 3
+					}
 				);
 				let fileAlias: string = `${args.name}(${args.masterNode.name}%${args.targetNode.name}).diff`;
 				await this.botMailing({
