@@ -47,6 +47,8 @@ backup/
 .vscode/
 .env
 report.xlsx
+*.diff
+*.src
 
 # TypeScript v1 declaration files
 typings/

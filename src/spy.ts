@@ -10,18 +10,21 @@ import {pget} from "./prequest";
 import {ppost} from "./prequest";
 import {Telegraf} from 'telegraf';
 import {HttpsProxyAgent} from 'https-proxy-agent';
+import * as diff from 'diff';
 
 export class Spy {
 	nodes: Array<DslNode>;
 	config: any;
 	schedulerJob: scheduler.Job | null;
 	bot: Telegraf | null;
-	jobEngaged: boolean;
+	jobHashesEngaged: boolean;
+	jobDiffEngaged: boolean;
 	constructor() {
 		this.nodes = [];
 		this.schedulerJob = null;
 		this.bot = null;
-		this.jobEngaged = false;
+		this.jobHashesEngaged = false;
+		this.jobDiffEngaged = false;
 	}
 	public getNode(name: string): DslNode | null {
 		for (let node of this.nodes) {
@@ -42,11 +45,11 @@ export class Spy {
 			}
 			if (this.config.scheduler.enabled) {
 				this.schedulerJob = scheduler.scheduleJob(this.config.scheduler.mask, () => {
-					this.job();
+					this.jobHashes();
 				});				
 			}
 			if (this.config.runJobOnStartup) {
-				setTimeout(() => this.job(), 10);
+				setTimeout(() => this.jobHashes(), 10);
 			}
 			setTimeout(() => this.tasks(), 10);
 			if (this.config.telegram.enabled) {
@@ -58,82 +61,124 @@ export class Spy {
 					})
 				}
 				else this.bot = new Telegraf(this.config.telegram.token);
-				if (this.bot) {
-					this.bot.start(async ctx => {
-						try {
-							ctx.reply(`isujt-dsl-spy: bot started at the telegram chat ${ctx.message.chat.id}`);
-							console.log(`isujt-dsl-spy bot started at the telegram chat ${ctx.message.chat.id}`);
-						}
-						catch(error) {
-							console.log(error);
-						}
-					})
-					this.bot.command('dsl', async ctx => {
-						try {
-							if (this.jobEngaged) throw 'job is engaged'
-							this.jobEngaged = true;
-							let cmds = ctx.update.message.text.split(' ');
-							if (cmds[1] === 'ping') {
-								ctx.reply('dsl: pong');
-							}
-							if (cmds[1] === 'update') {
-								ctx.reply('dsl: update job started, wait several minutes...');
-								for (let node of this.nodes) {
-									if (!cmds[2] || cmds[2] === node.name) {
-										await this.requestHashes(node);
-									}
-								}
-								await this.handleResults();
-							}
-							if (cmds[1] === 'diff') {
-								if (cmds[2] === 'module') {
-									if (!cmds[3]) throw 'script name not specified';
-									if (!cmds[4]) throw 'PTK not specified';
-									let targetNode: DslNode | null = this.getNode(cmds[4]);
-									if (!targetNode) throw 'PTK not found';
-									let masterNode = this.getNode(this.config.masterNode);
-									if (!masterNode) throw 'masterNode not specified in config file';
-									await ctx.reply('dsl: diff job started, wait several seconds...');
-									let master: any = await masterNode.getScript(cmds[3]);
-									let target: any = await targetNode.getScript(cmds[3]);
-									if (!master || !master.data || typeof master.data !== 'string') throw `error on node '${masterNode.name}' ${cmds[2]}: ${cmds[3]}`;
-									if (!target || !target.data || typeof target.data !== 'string') throw `error on node '${targetNode.name}' ${cmds[2]}: ${cmds[3]}`;
-									let a = 0;
-								}
-								else throw `diff ${cmds[2]} not implemented`
-							}
-						}
-						catch(error) {
-							let error_string: string = 'dsl error: ';
-							if (typeof error === 'string') error_string += error;
-							else error_string += 'smth goes wrong :('
-							console.log(error);
-							ctx.reply(error_string);
-						}
-						this.jobEngaged = false;
-					})					
-					this.bot.launch();
-					process.once('SIGINT', () => (this.bot as Telegraf).stop('SIGINT'));
-					process.once('SIGTERM', () => (this.bot as Telegraf).stop('SIGTERM'));
-				}
 			}
+			if (this.bot) this.telegramBot();
 		}
 		catch(error) {
 			console.log(error);
 		}
-	}	
-	private async job() {
+	}
+	private telegramBot() {
+		if (!this.bot) return;
+		this.bot.start(async ctx => {
+			try {
+				ctx.reply(`isujt-dsl-spy: bot started at the telegram chat ${ctx.message.chat.id}`);
+				console.log(`isujt-dsl-spy bot started at the telegram chat ${ctx.message.chat.id}`);
+			}
+			catch(error) {
+				console.log(error);
+			}
+		})
+		this.bot.command('dsl', async ctx => {
+			try {
+				let cmds = ctx.update.message.text.split(' ');
+				if (cmds[1] === 'ping') {
+					ctx.reply('dsl: pong');
+				}
+				if (cmds[1] === 'hashes') {
+					if (this.jobHashesEngaged) throw 'update hashes job is already in progress now';
+					setTimeout(() => this.jobHashes(cmds[2] ? cmds[2] : null), 10);
+					ctx.reply('dsl: update hashes job started, wait several minutes...');
+				}
+				if (cmds[1] === 'diff') {
+					if (this.jobDiffEngaged) throw 'diff job is already in progress now';
+					if (cmds[2] === 'module') {
+						if (!cmds[3]) throw 'script name not specified';
+						if (!cmds[4]) throw 'PTK not specified';
+						let targetNode: DslNode | null = this.getNode(cmds[4]);
+						if (!targetNode) throw 'PTK not found';
+						let masterNodeName: string = this.config.masterNode;
+						if (cmds[5]) masterNodeName = cmds[5];
+						let masterNode = this.getNode(masterNodeName);
+						if (!masterNode) throw 'masterNode not specified in config file';
+						setTimeout(() => this.jobDiff({
+							type: cmds[2],
+							name: cmds[3],
+							targetNode: targetNode,
+							masterNode: masterNode
+						}), 10);
+						ctx.reply('dsl: diff job started, wait several seconds...');
+					}
+					else throw `diff ${cmds[2]} not implemented`
+				}
+			}
+			catch(error) {
+				let error_string: string = 'dsl error: ';
+				if (typeof error === 'string') error_string += error;
+				else error_string += 'smth goes wrong :('
+				console.log(error);
+				ctx.reply(error_string);
+			}
+		})					
+		this.bot.launch();
+		process.once('SIGINT', () => (this.bot as Telegraf).stop('SIGINT'));
+		process.once('SIGTERM', () => (this.bot as Telegraf).stop('SIGTERM'));
+	}
+	private async jobHashes(nodeName?: string | null) {
 		try {
+			this.jobHashesEngaged = true;
 			console.log(`new job started...`);
 			for (let node of this.nodes) {
-				await this.requestHashes(node);
+				if (!nodeName || nodeName === node.name) {
+					await this.requestHashes(node);
+				}
 			}
 			await this.handleResults();
 		}
 		catch(error) {
-			console.log(`job error: ${error}`);
+			console.log(error);
+			let error_string: string = 'dsl error: ';
+			if (typeof error === 'string') error_string += error;
+			else error_string += 'smth goes wrong :('
+			this.botMessage(error_string);
 		}
+		this.jobHashesEngaged = false;
 	}
+	private async jobDiff(args: any) {
+		try {
+			this.jobDiffEngaged = true;
+			if (args.type === 'module') {
+				let master: any = await args.masterNode.getScript(args.name);
+				let target: any = await args.targetNode.getScript(args.name);
+				if (!master || !master.data || typeof master.data !== 'string') throw `error on node '${args.masterNode.name}' ${args.type}: ${args.name}`;
+				if (!target || !target.data || typeof target.data !== 'string') throw `error on node '${args.targetNode.name}' ${args.type}: ${args.name}`;
+				var diffResult: string = diff.createTwoFilesPatch(
+					args.name + '#' + args.masterNode.name,
+					args.name + '#' + args.targetNode.name,
+					master.data,
+					target.data,
+					'', '', 
+					{
+						context: 10000
+					}					
+				);
+				let fileAlias: string = `${args.name}(${args.masterNode.name}%${args.targetNode.name}).diff`;
+				await this.botMailing({
+					type: 'document',
+					fileBuffer: Buffer.from(diffResult, 'utf-8'),
+					fileAlias: fileAlias
+				});				
+			}
+		}
+		catch(error) {
+			console.log(error);
+			let error_string: string = 'dsl error: ';
+			if (typeof error === 'string') error_string += error;
+			else error_string += 'smth goes wrong :('
+			this.botMessage(error_string);
+		}
+		this.jobDiffEngaged = false;
+	}	
 	private async requestHashes(node: DslNode) {
 		try {
 			console.log(`requesting hashes from ${node.name}: ${node.baseUrl}...`);
@@ -247,27 +292,43 @@ export class Spy {
 		}
 		if (this.config.excelReport) {
 			await this.excelReport(report);
-			await this.botMailing();
+			await this.botMailing({
+				type: 'document',
+				fileName: './report.xlsx',
+				fileAlias: './hash-report.xlsx'
+			});
 		}
 	}
-	private async botMailing() {
+	private async botMailing(args: any) {
 		if (!this.bot) return;
 		try {
 			let chatsArray = this.config.telegram.chats;
-			let now = new Date();
-			let data: any = await fsread('./report.xlsx');
-			for (const chat of chatsArray) {
-				//let msg: string = now.toString() + ': new report generated';
-				//await this.bot.telegram.sendMessage(chat, msg);
-				await this.bot.telegram.sendDocument(chat, {
-					source: data,
-					filename: './dsl-report.xlsx'
-				});
+			if (args.type === 'document') {
+				let data: any = null;
+				if (args.fileBuffer) data = args.fileBuffer;
+				if (args.fileName) data = await fsread(args.fileName);
+				for (const chat of chatsArray) {
+					await this.bot.telegram.sendDocument(chat, {
+						source: data,
+						filename: args.fileAlias
+					});
+				}
+			}
+			if (args.type === 'message') {
+				for (const chat of chatsArray) {
+					await this.bot.telegram.sendMessage(chat, args.message);
+				}				
 			}
 		}
 		catch(error) {
 			console.log(error);
 		}
+	}
+	private async botMessage(message: string) {
+		await this.botMailing({
+			type: 'message',
+			message: message
+		})
 	}
 	private async excelReport(report: any) {
 		try {
