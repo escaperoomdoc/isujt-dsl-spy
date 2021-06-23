@@ -87,7 +87,9 @@ export class Spy {
 				}
 				if (cmds[1] === 'hashes') {
 					if (this.jobHashesEngaged) throw 'update hashes job is already in progress now';
-					setTimeout(() => this.jobHashes(cmds[2] ? cmds[2] : null), 10);
+					let fromChache: boolean = true;
+					if (cmds[3] && cmds[3] === 'update') fromChache = false;
+					setTimeout(() => this.jobHashes(cmds[2] ? cmds[2] : null, fromChache), 10);
 					ctx.reply('dsl: update hashes job started, wait several minutes...');
 				}
 				if (cmds[1] === 'diff' || cmds[1] === 'fulldiff') {
@@ -125,7 +127,7 @@ export class Spy {
 		process.once('SIGINT', () => (this.bot as Telegraf).stop('SIGINT'));
 		process.once('SIGTERM', () => (this.bot as Telegraf).stop('SIGTERM'));
 	}
-	private async jobHashes(nodeName?: string | null) {
+	private async jobHashes(nodeName?: string | null, fromChache?: boolean | null) {
 		try {
 			this.jobHashesEngaged = true;
 			console.log(`new job started...`);
@@ -137,8 +139,9 @@ export class Spy {
 			}
 			*/
 			await Promise.all(this.nodes.map(async(node) => {
-				if (!nodeName || nodeName === node.name) {
-					await this.requestHashes(node);
+				if (!nodeName || nodeName === node.name || nodeName === 'all') {
+					if (node.hashes && fromChache) console.log(`requesting hashes for ${node.name} from cache!`);
+					else await this.requestHashes(node);
 				}
 			}));
 			await this.handleResults();

@@ -49,7 +49,7 @@
 	},
 	"excelReport": true,
 	"server": {
-		"enabled": true,
+		"enabled": false,
 		"urlForwarding": "https://isujt.dsi.su/cache",
 		"urlTasks": "https://isujt.dsi.su/tasks",
 		"tasksTimeout": 2000
