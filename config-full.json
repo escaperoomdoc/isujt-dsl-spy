@@ -2,33 +2,39 @@
 	"nodes": [{
 		"name": "eok",
 		"url": "http://svrw-isugt-wb.svrw.oao.rzd:8081",
-		"file": "md5-eok.json",
-		"script": "script-eok.rb"
+		"fileHashes": "md5-eok.json",
+		"fileScript": "script-eok.rb",
+		"hashesDelay": 3000
 	}, {
 		"name": "etk1",
 		"url": "http://svrw-isugt-wb.svrw.oao.rzd:8080",
-		"file": "md5-etk1.json",
-		"script": "script-etk1.rb"
+		"fileHashes": "md5-etk1.json",
+		"fileScript": "script-etk1.rb",
+		"hashesDelay": 1000
 	}, {
 		"name": "etk2",
 		"url": "http://svrw-isugt-wb.svrw.oao.rzd:8088",
-		"file": "md5-etk2.json",
-		"script": "script-etk2.rb"
+		"fileHashes": "md5-etk2.json",
+		"fileScript": "script-etk2.rb",
+		"hashesDelay": 5000
 	}, {
 		"name": "iok",
 		"url": "http://10.111.75.242:8080",
-		"file": "md5-iok.json",
-		"script": "script-iok.rb"
+		"fileHashes": "md5-iok.json",
+		"fileScript": "script-iok.rb",
+		"hashesDelay": 7000
 	}, {
 		"name": "itk1",
 		"url": "http://10.111.75.242:8082",
-		"file": "md5-itk1.json",
-		"script": "script-itk1.rb"
+		"fileHashes": "md5-itk1.json",
+		"fileScript": "script-itk1.rb",
+		"hashesDelay": 5000
 	}, {
 		"name": "itk2",
 		"url": "http://10.111.75.242:8081",
-		"file": "md5-itk2.json",
-		"script": "script-itk2.rb"
+		"fileHashes": "md5-itk2.json",
+		"fileScript": "script-itk2.rb",
+		"hashesDelay": 3000
 	}],	
 	"masterNode": "eok",
 	"scheduler": {

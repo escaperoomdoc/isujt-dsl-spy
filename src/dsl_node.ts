@@ -1,5 +1,5 @@
 import axios from 'axios';
-import {fsread} from "./app";
+import {fsread, sleep} from "./app";
 import {fswrite} from "./app";
 
 export interface IDslNodeResult {
@@ -11,8 +11,9 @@ export interface IDslNodeResult {
 export class DslNode {
 	name: string;
 	baseUrl: string;
-	jsonFile?: string;
-	scriptFile?: string;
+	fileHashes?: string;
+	fileScript?: string;
+	hashesDelay: number;
 	filesPolicy: any;
 	hashes: any;
 	timeofHashes: number;
@@ -20,8 +21,10 @@ export class DslNode {
 		try {
 			this.name = cfg.name;
 			this.baseUrl = cfg.url;
-			this.jsonFile = cfg.file;
-			this.scriptFile = cfg.script;
+			this.fileHashes = cfg.fileHashes;
+			this.fileScript = cfg.fileScript;
+			this.hashesDelay = 0;
+			if (cfg.hashesDelay) this.hashesDelay = cfg.hashesDelay;
 			this.filesPolicy = filesPolicy;
 			this.timeofHashes = 0;
 		}
@@ -32,20 +35,33 @@ export class DslNode {
 	}
 	private async get(endpoint: string, parameters?: any): Promise<IDslNodeResult> {
 		try {
-			if (this.jsonFile && this.filesPolicy.emulate) {
-				if (parameters && parameters.type_response === 'md5') {
-					let data = (await fsread(this.jsonFile as string)).toString();
-					return {
-						status: 'ok',
-						payload: JSON.parse(data)
+			if (this.filesPolicy.emulate) {
+				if (this.fileHashes)
+				{
+					if (parameters && parameters.type_response === 'md5') {
+						if (this.hashesDelay) {
+							await sleep(this.hashesDelay);
+						}
+						let data = (await fsread(this.fileHashes as string)).toString();
+						return {
+							status: 'ok',
+							payload: JSON.parse(data)
+						}
 					}
 				}
-				if (parameters && parameters.script_name) {
-					let data = (await fsread(this.scriptFile as string)).toString();
-					return {
-						status: 'ok',
-						payload: JSON.parse(data)
+				if (this.fileHashes)
+				{
+					if (parameters && parameters.script_name) {
+						let data = (await fsread(this.fileScript as string)).toString();
+						return {
+							status: 'ok',
+							payload: JSON.parse(data)
+						}
 					}
+				}
+				return {
+					status: 'error',
+					payload: null
 				}
 			}
 			var url: string = this.baseUrl + endpoint;
@@ -59,8 +75,11 @@ export class DslNode {
 				url += paramstring;
 			}
 			var result = await axios.get(url);
-			if (this.jsonFile && !this.filesPolicy.emulate && this.filesPolicy.rewrite) {
-				await fswrite(this.jsonFile, JSON.stringify(result.data));
+			if (this.fileHashes && !this.filesPolicy.emulate && this.filesPolicy.rewrite && parameters && parameters.type_response === 'md5') {
+				await fswrite(this.fileHashes, JSON.stringify(result.data));
+			}
+			if (this.fileScript && !this.filesPolicy.emulate && this.filesPolicy.rewrite && parameters && parameters.script_name) {
+				await fswrite(this.fileScript, JSON.stringify(result.data));
 			}
 			return {
 				status: 'ok',
