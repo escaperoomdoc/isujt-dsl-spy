@@ -66,7 +66,7 @@ export class Spy {
 			if (this.bot) this.telegramBot();
 		}
 		catch(error) {
-			console.log(error);
+			console.log(`${now()}: ${error}`);
 		}
 	}
 	private telegramBot() {
@@ -77,7 +77,7 @@ export class Spy {
 				console.log(`${now()}: isujt-dsl-spy bot started at the telegram chat ${ctx.message.chat.id}`);
 			}
 			catch(error) {
-				console.log(error);
+				console.log(`${now()}: ${error}`);
 			}
 		})
 		this.bot.command('dsl', async ctx => {
@@ -120,7 +120,7 @@ export class Spy {
 				let error_string: string = 'dsl error: ';
 				if (typeof error === 'string') error_string += error;
 				else error_string += 'smth goes wrong :('
-				console.log(error);
+				console.log(`${now()}: ${error_string}`);
 				ctx.reply(error_string);
 			}
 		})					
@@ -152,10 +152,10 @@ export class Spy {
 			await this.handleResults();
 		}
 		catch(error) {
-			console.log(error);
+			console.log(`${now()}: ${error}`);
 			let error_string: string = 'dsl error: ';
 			if (typeof error === 'string') error_string += error;
-			else error_string += 'smth goes wrong :('
+			else error_string += 'smth goes wrong :(';
 			this.botMessage(error_string);
 		}
 		this.jobHashesEngaged = false;
@@ -190,7 +190,7 @@ export class Spy {
 			}
 		}
 		catch(error) {
-			console.log(error);
+			console.log(`${now()}: ${error}`);
 			let error_string: string = 'dsl error: ';
 			if (typeof error === 'string') error_string += error;
 			else error_string += 'smth goes wrong :('
@@ -213,7 +213,7 @@ export class Spy {
 			}
 		}
 		catch(error) {
-			console.log(error)
+			console.log(`${now()}: ${error}`);
 		}
 	}
 	private async forwardHashes(node: DslNode) {
@@ -239,7 +239,7 @@ export class Spy {
 			let result: any = await ppost(this.config.server.urlForwarding, JSON.stringify(data), this.config.proxy.enabled ? this.config.proxy.url : null);
 		}
 		catch(error) {
-			console.log(error);
+			console.log(`${now()}: ${error}`);
 		}		
 	}
 	private async tasks() {
@@ -280,7 +280,7 @@ export class Spy {
 			}
 		}
 		catch(error) {
-			console.log(error);
+			console.log(`${now()}: ${error}`);
 		}
 		setTimeout(() => this.tasks(), this.config.server.tasksTimeout);
 	}
@@ -340,7 +340,7 @@ export class Spy {
 			}
 		}
 		catch(error) {
-			console.log(error);
+			console.log(`${now()}: ${error}`);
 		}
 	}
 	private async botMessage(message: string) {
@@ -461,7 +461,7 @@ export class Spy {
 			}
 		}
 		catch(error) {
-			console.log(error);
+			console.log(`${now()}: ${error}`);
 		}
 	}
 	private sortStorage(storage: any) {

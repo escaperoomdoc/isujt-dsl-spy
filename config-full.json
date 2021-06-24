@@ -1,5 +1,11 @@
 {
 	"nodes": [{
+		"name": "master",
+		"url": "http://10.247.14.73:8088/standard",
+		"fileHashes": "md5-master.json",
+		"fileScript": "script-master.rb",
+		"hashesDelay": 1000
+	},{
 		"name": "eok",
 		"url": "http://svrw-isugt-wb.svrw.oao.rzd:8081",
 		"fileHashes": "md5-eok.json",
@@ -39,7 +45,7 @@
 	"masterNode": "eok",
 	"scheduler": {
 		"enabled": true,
-		"mask": "10 0 0 * * *"
+		"mask": "0 35 0 * * *"
 	},
 	"exitOnJobFinished": false,
 	"runJobOnStartup": false,
