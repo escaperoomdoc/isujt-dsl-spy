@@ -2,6 +2,7 @@ import {exit} from 'process';
 import {setInterval} from 'timers';
 import {logger} from './app';
 import {fsread} from './app';
+import {now} from './app';
 import {fswrite} from './app';
 import {DslNode} from './dsl_node';
 import * as ejs from 'exceljs';
@@ -36,7 +37,7 @@ export class Spy {
 		try {
 			let cfg = (await fsread('./config.json')).toString();
 			this.config = JSON.parse(cfg);
-			console.log('isujt-dsl-spy application started...');
+			console.log(`${now()}: isujt-dsl-spy application started...`);
 			if (!this.config.requestTimeout || this.config.requestTimeout < 5000) {
 				this.config.requestTimeout = 5000;
 			}
@@ -73,7 +74,7 @@ export class Spy {
 		this.bot.start(async ctx => {
 			try {
 				ctx.reply(`isujt-dsl-spy: bot started at the telegram chat ${ctx.message.chat.id}`);
-				console.log(`isujt-dsl-spy bot started at the telegram chat ${ctx.message.chat.id}`);
+				console.log(`${now()}: isujt-dsl-spy bot started at the telegram chat ${ctx.message.chat.id}`);
 			}
 			catch(error) {
 				console.log(error);
@@ -128,9 +129,13 @@ export class Spy {
 		process.once('SIGTERM', () => (this.bot as Telegraf).stop('SIGTERM'));
 	}
 	private async jobHashes(nodeName?: string | null, fromChache?: boolean | null) {
+		if (this.jobHashesEngaged) {
+			console.log(`${now()}: ERROR! jobHashes in progress now!`);
+			return;
+		}
 		try {
 			this.jobHashesEngaged = true;
-			console.log(`new job started...`);
+			console.log(`${now()}: new job started...`);
 			/*
 			for (let node of this.nodes) {
 				if (!nodeName || nodeName === node.name) {
@@ -140,7 +145,7 @@ export class Spy {
 			*/
 			await Promise.all(this.nodes.map(async(node) => {
 				if (!nodeName || nodeName === node.name || nodeName === 'all') {
-					if (node.hashes && fromChache) console.log(`requesting hashes for ${node.name} from cache!`);
+					if (node.hashes && fromChache) console.log(`${now()}: requesting hashes for ${node.name} from cache!`);
 					else await this.requestHashes(node);
 				}
 			}));
@@ -159,13 +164,13 @@ export class Spy {
 		try {
 			this.jobDiffEngaged = true;
 			if (args.type === 'module') {
-				console.log(`requesting '${args.name}' from ${args.masterNode.name}...`);
+				console.log(`${now()}: requesting '${args.name}' from ${args.masterNode.name}...`);
 				let master: any = await args.masterNode.getScript(args.name);
-				console.log(`requesting '${args.name}' from ${args.targetNode.name}...`);
+				console.log(`${now()}: requesting '${args.name}' from ${args.targetNode.name}...`);
 				let target: any = await args.targetNode.getScript(args.name);
 				if (!master || !master.data || typeof master.data !== 'string') throw `error on node '${args.masterNode.name}' ${args.type}: ${args.name}`;
 				if (!target || !target.data || typeof target.data !== 'string') throw `error on node '${args.targetNode.name}' ${args.type}: ${args.name}`;
-				console.log(`comparing...`);
+				console.log(`${now()}: comparing...`);
 				var diffResult: string = diff.createTwoFilesPatch(
 					args.name + '#' + args.masterNode.name,
 					args.name + '#' + args.targetNode.name,
@@ -195,16 +200,16 @@ export class Spy {
 	}	
 	private async requestHashes(node: DslNode) {
 		try {
-			console.log(`requesting hashes from ${node.name}: ${node.baseUrl}...`);
+			console.log(`${now()}: requesting hashes from ${node.name}: ${node.baseUrl}...`);
 			let hashes = await node.getHashes();
 			if (hashes) {
 				node.timeofHashes = Date.now();
-				console.log(`success request from ${node.name}: ${node.baseUrl}`);
+				console.log(`${now()}: success request from ${node.name}: ${node.baseUrl}`);
 			}
 			else throw `error in request from ${node.name}: ${node.baseUrl}`;
 			if (this.config.server && this.config.server.enabled) {
 				await this.forwardHashes(node);
-				console.log(`success forwarding to ${this.config.server.urlForwarding}`);
+				console.log(`${now()}: success forwarding to ${this.config.server.urlForwarding}`);
 			}
 		}
 		catch(error) {
@@ -247,7 +252,7 @@ export class Spy {
 			let tasks = JSON.parse(result.body);
 			for (let task of tasks.tasks) {
 				if (task.task === 'get-module') {
-					console.log(`received task '${task.task}': ${task.name}`);
+					console.log(`${now()}: received task '${task.task}': ${task.name}`);
 					let data: any = {
 						method: 'content',
 						type: 'module',
@@ -255,15 +260,15 @@ export class Spy {
 						payload: {}
 					};
 					for (let node of this.nodes) {
-						console.log(`loading script '${node.name}': ${task.name}...`);
+						console.log(`${now()}: loading script '${node.name}': ${task.name}...`);
 						let scriptResult: any = await node.getScript(task.name);
 						data.payload[node.name] = scriptResult && scriptResult.data ? scriptResult.data : null;
 					}
 					//await fswrite('test.json', JSON.stringify(data));
 					//let result: any = await axios.post(this.config.server.urlForwarding, data, {httpsAgent: httpsAgent});
-					console.log(`forwarding scripts to server ${this.config.server.urlForwarding}...`);
+					console.log(`${now()}: forwarding scripts to server ${this.config.server.urlForwarding}...`);
 					let result: any = await ppost(this.config.server.urlForwarding, JSON.stringify(data), this.config.proxy.enabled ? this.config.proxy.url : null);
-					console.log(`handled task '${task.task}': ${task.name}`);
+					console.log(`${now()}: handled task '${task.task}': ${task.name}`);
 				}
 				if (task.task === 'get-hash') {
 					for (let node of this.nodes) {
@@ -351,7 +356,7 @@ export class Spy {
 			this.excelReportSheet(workbook, report.classes, 'classes');
 			this.excelReportSheet(workbook, report.files, 'files');
 			await workbook.xlsx.writeFile('report.xlsx');
-			console.log('excel report successfuly generated');
+			console.log(`${now()}: excel report successfuly generated`);
 			if (this.config.exitOnJobFinished) exit();
 		}
 		catch(error) {
