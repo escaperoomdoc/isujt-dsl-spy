@@ -12,6 +12,7 @@ import {ppost} from "./prequest";
 import {Telegraf} from 'telegraf';
 import {HttpsProxyAgent} from 'https-proxy-agent';
 import * as diff from 'diff';
+import md5 from 'md5';
 
 export class Spy {
 	nodes: Array<DslNode>;
@@ -288,6 +289,7 @@ export class Spy {
 		let master = null;
 		var report: any = {
 			modules: {},
+			methods: {},
 			classes: {},
 			files: {}
 		};
@@ -297,6 +299,27 @@ export class Spy {
 			for (let item in node.hashes.data.modules) {
 				if (report.modules[item] === undefined) report.modules[item] = {};
 				report.modules[item][node.name] = node.hashes.data.modules[item];
+			}
+			if (node.hashes.data.methods_hash)
+			for (let module in node.hashes.data.methods_hash) {
+				// raw module hash
+				let moduleAlias: string = '[' + module + ']';
+				if (report.methods[moduleAlias] === undefined) report.methods[moduleAlias] = {};
+				report.methods[moduleAlias][node.name] = node.hashes.data.modules[module];
+				// attributes hash
+				let moduleAttrAlias: string = module + '::attributes';
+				if (report.methods[moduleAttrAlias] === undefined) report.methods[moduleAttrAlias] = {};				
+				if (node.hashes.data.modules_attrs && node.hashes.data.modules_attrs[module] && Object.keys(node.hashes.data.modules_attrs[module]).length > 0) {
+					report.methods[moduleAttrAlias][node.name] = md5(JSON.stringify(node.hashes.data.modules_attrs[module]));
+				}
+				else report.methods[moduleAttrAlias][node.name] = 'null';
+				// module methods
+				if (node.hashes.data.methods_hash[module])
+				for (let method in node.hashes.data.methods_hash[module]) {
+					let methodAlias: string = module + '.' + method;
+					if (report.methods[methodAlias] === undefined) report.methods[methodAlias] = {};
+					report.methods[methodAlias][node.name] = node.hashes.data.methods_hash[module][method];
+				}
 			}
 			if (node.hashes.data.classes)
 			for (let item in node.hashes.data.classes) {
@@ -357,6 +380,7 @@ export class Spy {
 		try {
 			const workbook = new ejs.Workbook();
 			this.excelReportSheet(workbook, report.modules, 'modules');
+			this.excelReportSheet(workbook, report.methods, 'methods');
 			this.excelReportSheet(workbook, report.classes, 'classes');
 			this.excelReportSheet(workbook, report.files, 'files');
 			await workbook.xlsx.writeFile('report.xlsx');
@@ -387,7 +411,7 @@ export class Spy {
 					size: 14
 				}
 			}
-			// set values
+			// set dates of update
 			let rowIndex = 2;
 			columnIndex = 0;
 			let font = {
@@ -407,7 +431,7 @@ export class Spy {
 				cell.value = dt.toISOString();
 				cell.font = font;
 			}
-			// set values
+			// set values...
 			rowIndex = 2;
 			for (let node of this.config.nodes) {
 				node.diffs = 0;
@@ -423,11 +447,11 @@ export class Spy {
 				if (diffs === 0) color = 'FFA0A0A0';
 				row.getCell(columnIndex).value = itemName;
 				row.getCell(columnIndex).font = {
-					name: 'Arial Black',
+					name: sheetName === 'methods' && itemName[0] !== '[' ? 'Arial' :'Arial Black',
 					color: { argb: color },
 					family: 2,
-					size: 9,
-					bold: true
+					size: sheetName === 'methods' && itemName[0] !== '[' ? 7 : 9,
+					bold: sheetName === 'methods' && itemName[0] !== '[' ? false : true
 				}
 				for (let node of this.config.nodes) {
 					let nodeName = node.name;
