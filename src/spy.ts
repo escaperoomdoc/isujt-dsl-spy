@@ -292,6 +292,7 @@ export class Spy {
 			files: {}
 		};
 		for (let node of this.nodes) {
+			if (!node.hashes) continue;
 			if (node.hashes.data.modules)
 			for (let item in node.hashes.data.modules) {
 				if (report.modules[item] === undefined) report.modules[item] = {};
@@ -302,9 +303,12 @@ export class Spy {
 				if (report.classes[item] === undefined) report.classes[item] = {};
 				report.classes[item][node.name] = node.hashes.data.classes[item];
 			}
+			let fileCount: number = 0;
 			if (node.hashes.data.file)
 			for (let item of node.hashes.data.file) {
-				if (!Array.isArray(item)) throw 'not array file-object detected';
+				fileCount ++;
+				if (!item) continue;
+				if (!Array.isArray(item)) throw `${node.name}(${fileCount}) not array file-object detected`;
 				if (report.files[item[0]] === undefined) report.files[item[0]] = {};
 				report.files[item[0]][node.name] = item[1];
 			}			
