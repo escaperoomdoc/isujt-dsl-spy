@@ -1,11 +1,11 @@
 {
 	"nodes": [{
 		"name": "master",
-		"url": "http://10.247.14.73:8088/standard",
+		"url": "http://10.247.14.73:8090",
 		"fileHashes": "md5-master.json",
 		"fileScript": "script-master.rb",
 		"hashesDelay": 1000
-	},{
+	}, {
 		"name": "eok",
 		"url": "http://svrw-isugt-wb.svrw.oao.rzd:8081",
 		"fileHashes": "md5-eok.json",
@@ -19,7 +19,8 @@
 		"hashesDelay": 1000
 	}, {
 		"name": "etk2",
-		"url": "http://svrw-isugt-wb.svrw.oao.rzd:8088",
+		"url": "http://10.247.14.203:8088",
+		"url1": "http://svrw-isugt-wb.svrw.oao.rzd:8088",
 		"fileHashes": "md5-etk2.json",
 		"fileScript": "script-etk2.rb",
 		"hashesDelay": 5000
@@ -42,7 +43,7 @@
 		"fileScript": "script-itk2.rb",
 		"hashesDelay": 3000
 	}],	
-	"masterNode": "eok",
+	"masterNode": "master",
 	"scheduler": {
 		"enabled": true,
 		"mask": "0 35 0 * * *"
@@ -67,6 +68,6 @@
 	"telegram": {
 		"enabled": true,
 		"token": "1600511954:AAHO_BsqXBwPltv0kbO0E_oPo7vR7tXWz_o",
-		"chats": ["491231518"]
+		"chats": ["491231518", "-511072995"]
 	}
 }
