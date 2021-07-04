@@ -1,6 +1,7 @@
 import axios from 'axios';
 import {fsread, sleep} from "./app";
 import {fswrite} from "./app";
+import {now} from './app';
 
 export interface IDslNodeResult {
 	status: string,
@@ -99,7 +100,16 @@ export class DslNode {
 			method: 'get_dsl',
 			type_response: 'md5'
 		});
-		return this.hashes = (result.status && result.status === 'ok') ? result.payload : null;
+		this.hashes = (result.status && result.status === 'ok') ? result.payload : null;
+		if (!this.hashes) {
+			console.log(`${now()}: WARNING! node ${this.name} returns null hashes`);
+			return this.hashes;
+		}
+		if (typeof this.hashes === 'string') {
+			console.log(`${now()}: WARNING! node ${this.name} returns error string instead of object`);
+			this.hashes = null;
+		}
+		return this.hashes;
 	}
 	public async getScript(name: string): Promise<IDslNodeResult> {
 		let result = await this.get('/ajax2.php', {
