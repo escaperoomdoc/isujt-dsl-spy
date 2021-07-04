@@ -49,6 +49,7 @@ backup/
 report.xlsx
 *.diff
 *.src
+*.html
 
 # TypeScript v1 declaration files
 typings/

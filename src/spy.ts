@@ -13,6 +13,7 @@ import {Telegraf} from 'telegraf';
 import {HttpsProxyAgent} from 'https-proxy-agent';
 import * as diff from 'diff';
 import md5 from 'md5';
+import {diffhtml} from './diffhtml';
 
 export class Spy {
 	nodes: Array<DslNode>;
@@ -187,11 +188,18 @@ export class Spy {
 					}
 				);
 				let fileAlias: string = `${args.name}(${args.masterNode.name}%${args.targetNode.name}).diff`;
+				try {
+					diffResult = await diffhtml(diffResult);
+					fileAlias = `${args.name}(${args.masterNode.name}%${args.targetNode.name}).html`;
+				}
+				catch(error) {
+					console.log(`${now()}: ${error}`);
+				}
 				await this.botMailing({
 					type: 'document',
 					fileBuffer: Buffer.from(diffResult, 'utf-8'),
 					fileAlias: fileAlias
-				});				
+				});
 			}
 		}
 		catch(error) {
