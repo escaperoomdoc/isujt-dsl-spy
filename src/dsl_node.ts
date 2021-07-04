@@ -109,4 +109,12 @@ export class DslNode {
 		});
 		return (result.status && result.status === 'ok') ? result.payload : null;
 	}
+	public async getMethod(name: string): Promise<IDslNodeResult> {
+		let result = await this.get('/ajax2.php', {
+			module: 'Monitoring',
+			method: 'get_dsl',
+			method_name: name
+		});
+		return (result.status && result.status === 'ok') ? result.payload : null;
+	}
 };

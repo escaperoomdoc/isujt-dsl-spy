@@ -96,7 +96,7 @@ export class Spy {
 				}
 				if (cmds[1] === 'diff' || cmds[1] === 'fulldiff') {
 					if (this.jobDiffEngaged) throw 'diff job is already in progress now';
-					if (cmds[2] === 'module') {
+					if (cmds[2] === 'module' || cmds[2] === 'method') {
 						if (!cmds[3]) throw 'script name not specified';
 						if (!cmds[4]) throw 'PTK not specified';
 						let targetNode: DslNode | null = this.getNode(cmds[4]);
@@ -164,11 +164,15 @@ export class Spy {
 	private async jobDiff(args: any) {
 		try {
 			this.jobDiffEngaged = true;
-			if (args.type === 'module') {
+			if (args.type === 'module' || args.type === 'method') {
 				console.log(`${now()}: requesting '${args.name}' from ${args.masterNode.name}...`);
-				let master: any = await args.masterNode.getScript(args.name);
+				let master: any = null;
+				if (args.type === 'module') master = await args.masterNode.getScript(args.name);
+				if (args.type === 'method') master = await args.masterNode.getMethod(args.name);
+				let target: any = null;
 				console.log(`${now()}: requesting '${args.name}' from ${args.targetNode.name}...`);
-				let target: any = await args.targetNode.getScript(args.name);
+				if (args.type === 'module') target = await args.targetNode.getScript(args.name);
+				if (args.type === 'method') target = await args.targetNode.getMethod(args.name);
 				if (!master || !master.data || typeof master.data !== 'string') throw `error on node '${args.masterNode.name}' ${args.type}: ${args.name}`;
 				if (!target || !target.data || typeof target.data !== 'string') throw `error on node '${args.targetNode.name}' ${args.type}: ${args.name}`;
 				console.log(`${now()}: comparing...`);
