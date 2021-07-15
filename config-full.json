@@ -1,7 +1,7 @@
 {
 	"nodes": [{
 		"name": "master",
-		"url": "http://10.247.14.73:8090",
+		"url": "http://serw-isugt-pl4-05.serw.oao.rzd:8080",
 		"fileHashes": "md5-master.json",
 		"fileScript": "script-master.rb",
 		"hashesDelay": 1000
