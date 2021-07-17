@@ -46,7 +46,7 @@
 	"masterNode": "master",
 	"scheduler": {
 		"enabled": true,
-		"mask": "0 35 0 * * *"
+		"task": "00:40:00"
 	},
 	"exitOnJobFinished": false,
 	"runJobOnStartup": false,

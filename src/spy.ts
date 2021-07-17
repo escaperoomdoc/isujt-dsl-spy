@@ -6,7 +6,6 @@ import {now} from './app';
 import {fswrite} from './app';
 import {DslNode} from './dsl_node';
 import * as ejs from 'exceljs';
-import * as scheduler from "node-schedule";
 import {pget} from "./prequest";
 import {ppost} from "./prequest";
 import {Telegraf} from 'telegraf';
@@ -18,13 +17,16 @@ import {diffhtml} from './diffhtml';
 export class Spy {
 	nodes: Array<DslNode>;
 	config: any;
-	schedulerJob: scheduler.Job | null;
+	cron: any;
 	bot: Telegraf | null;
 	jobHashesEngaged: boolean;
 	jobDiffEngaged: boolean;
 	constructor() {
 		this.nodes = [];
-		this.schedulerJob = null;
+		this.cron = {
+			task: {h:  0, m: 40, s:  0},
+			prev: {h: -1, m: -1, s: -1}
+		}
 		this.bot = null;
 		this.jobHashesEngaged = false;
 		this.jobDiffEngaged = false;
@@ -47,9 +49,27 @@ export class Spy {
 				this.nodes.push(new DslNode(node, this.config.files));
 			}
 			if (this.config.scheduler.enabled) {
-				this.schedulerJob = scheduler.scheduleJob(this.config.scheduler.mask, () => {
-					this.jobHashes();
-				});				
+				let sl = this.config.scheduler.task.split(':');
+				if (sl.length === 3) {
+					this.cron.task.h = parseInt(sl[0]);
+					this.cron.task.m = parseInt(sl[1]);
+					this.cron.task.s = parseInt(sl[2]);
+				}
+				else console.log(`${now()}: scheduler task error, leaving default 00:40:00`);
+				setInterval(()=> {
+					let dt = new Date(Date.now());
+					let h = dt.getHours();
+					let m = dt.getMinutes();
+					let s = dt.getSeconds();
+					if (this.cron.task.h === h && this.cron.task.m === m && this.cron.task.s === s) {
+						if (this.cron.prev.h !== h || this.cron.prev.m !== m || this.cron.prev.s !== s) {
+							this.jobHashes();
+						}
+					}
+					this.cron.prev.h = h;
+					this.cron.prev.m = m;
+					this.cron.prev.s = s;
+				}, 300);
 			}
 			if (this.config.runJobOnStartup) {
 				setTimeout(() => this.jobHashes(), 10);
