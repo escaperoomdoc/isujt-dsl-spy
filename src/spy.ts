@@ -63,6 +63,7 @@ export class Spy {
 					let s = dt.getSeconds();
 					if (this.cron.task.h === h && this.cron.task.m === m && this.cron.task.s === s) {
 						if (this.cron.prev.h !== h || this.cron.prev.m !== m || this.cron.prev.s !== s) {
+							console.log(`${now()}: scheduler job...`);
 							this.jobHashes();
 						}
 					}
@@ -72,6 +73,7 @@ export class Spy {
 				}, 300);
 			}
 			if (this.config.runJobOnStartup) {
+				console.log(`${now()}: startup jobHashes() started...`);
 				setTimeout(() => this.jobHashes(), 10);
 			}
 			setTimeout(() => this.tasks(), 10);
@@ -112,6 +114,7 @@ export class Spy {
 					if (this.jobHashesEngaged) throw 'update hashes job is already in progress now';
 					let fromChache: boolean = true;
 					if (cmds[3] && cmds[3] === 'update') fromChache = false;
+					console.log(`${now()}: telegram jobHashes() started...`);
 					setTimeout(() => this.jobHashes(cmds[2] ? cmds[2] : null, fromChache), 10);
 					ctx.reply('dsl: update hashes job started, wait several minutes...');
 				}
