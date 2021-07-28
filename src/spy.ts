@@ -64,7 +64,7 @@ export class Spy {
 					if (this.cron.task.h === h && this.cron.task.m === m && this.cron.task.s === s) {
 						if (this.cron.prev.h !== h || this.cron.prev.m !== m || this.cron.prev.s !== s) {
 							console.log(`${now()}: scheduler job...`);
-							this.jobHashes();
+							setTimeout(() => this.jobHashes(), 1500);
 						}
 					}
 					this.cron.prev.h = h;
