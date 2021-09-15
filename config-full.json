@@ -46,7 +46,7 @@
 	"masterNode": "master",
 	"scheduler": {
 		"enabled": true,
-		"task": "00:40:00"
+		"task": "00:35:00"
 	},
 	"exitOnJobFinished": false,
 	"runJobOnStartup": false,
@@ -63,7 +63,7 @@
 	},
 	"proxy": {
 		"enabled": true,
-		"url": "http://s.dolganuk:user2021@srvtmg.ctt.com.mps:8080"
+		"url": "http://s.dolganuk:user2022@srvtmg.ctt.com.mps:8080"
 	},
 	"telegram": {
 		"enabled": true,
